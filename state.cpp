@@ -79,7 +79,7 @@ State::State(const double _len, const long _n_parts,
 void State::evolve() {
 	calcInternalForces();
 
-	for (long i = 1 ; i < n_parts ; ++i) {
+	for (long i = 0 ; i < n_parts ; ++i) {
 		// Internal forces +  Activity + Gaussian noise
 		positions[i][0] += dt * (forces[i][0]
 		                         + activity * std::cos(angles[i]));

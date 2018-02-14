@@ -31,7 +31,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/program_options.hpp>
 #include "simul.h"
 #include "state.h"
-// #include "visu.h"
+#include "visu.h"
 
 namespace po = boost::program_options;
 
@@ -117,8 +117,8 @@ void Simul::run() {
 	            dt);
 	
 	// Start thread for visualization
-	// Visu visu(&state, n1, n2);
-	// std::thread thVisu(&Visu::run, &visu); 
+	Visu visu(&state, len, n_parts);
+	std::thread thVisu(&Visu::run, &visu); 
 
 	// Time evolution
 	for (long t = 0 ; t < n_iters ; ++t) {
@@ -128,7 +128,7 @@ void Simul::run() {
 		}
 	}
 
-	// thVisu.join();
+	thVisu.join();
 }
 
 /*!
