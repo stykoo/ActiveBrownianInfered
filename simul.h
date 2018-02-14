@@ -9,13 +9,13 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-ForceInCrystal is distributed in the hope that it will be useful,
+ActiveBrownian is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with ForceInCrystal.  If not, see <http://www.gnu.org/licenses/>.
+along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*!
  * \file simul.h
@@ -59,6 +59,7 @@ class Simul {
 		long n_parts; //!< Number of particles
 		double pot_strength; //!< Strength of interparticle potential
 		double temperature; //!< Temperature
+		double rot_dif; //!< Rotational diffusivity
 		double activity; //!< Activity
 		double dt; //!< Timestep
 		long n_iters; //!w Number of time iterations

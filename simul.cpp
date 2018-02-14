@@ -9,13 +9,13 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-ForceInCrystal is distributed in the hope that it will be useful,
+ActiveBrownian is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with ForceInCrystal.  If not, see <http://www.gnu.org/licenses/>.
+along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*!
  * \file simul.cpp
@@ -30,6 +30,7 @@ along with ForceInCrystal.  If not, see <http://www.gnu.org/licenses/>.
 #include <thread>
 #include <boost/program_options.hpp>
 #include "simul.h"
+#include "state.h"
 // #include "visu.h"
 
 namespace po = boost::program_options;
@@ -54,6 +55,8 @@ Simul::Simul(int argc, char **argv) {
 		("eps,e", po::value<double>(&pot_strength)->required(),
 		 "Strength of interparticle potential")
 		("temp,T", po::value<double>(&temperature)->required(), "Temperature")
+		("rdif,D", po::value<double>(&rot_dif)->required(),
+		 "Rotational diffusivity")
 		("activ,U", po::value<double>(&activity)->required(), "Activity")
 		("dt,t", po::value<double>(&dt)->required(), "Timestep")
 		("iters,I", po::value<long>(&n_iters)->required(),
@@ -85,8 +88,9 @@ Simul::Simul(int argc, char **argv) {
 	// Check if the values of the parameters are allowed
 	if (notStrPositive(rho, "rho") || notStrPositive(n_parts, "n_parts")
 		|| notPositive(pot_strength, "eps")
-		|| notPositive(temperature, "T") || notPositive(activity, "actity")
-		|| notStrPositive(dt, "dt") || notPositive(n_iters, "n_iters")) {
+		|| notPositive(temperature, "T") || notPositive(rot_dif, "rot_dif")
+		|| notPositive(activity, "actity") || notStrPositive(dt, "dt")
+		|| notPositive(n_iters, "n_iters")) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
@@ -109,7 +113,8 @@ void Simul::run() {
 	}
 
 	// Initialize the state of the system
-	// State state(n1, n2, temperature, fv, angle, dt, screening, evolType);
+	State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
+	            dt);
 	
 	// Start thread for visualization
 	// Visu visu(&state, n1, n2);
@@ -117,10 +122,10 @@ void Simul::run() {
 
 	// Time evolution
 	for (long t = 0 ; t < n_iters ; ++t) {
-		/* state.evolve();
+		state.evolve();
 		if (sleep > 0) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-		} */
+		}
 	}
 
 	// thVisu.join();
@@ -130,9 +135,9 @@ void Simul::run() {
  * \brief Print the parameters of the simulation
  */
 void Simul::print() const {
-	std::cout << "# rho=" << rho << ", n_parts=" << n_parts << "pot_strength="
-			  << pot_strength << ", temperature=" << temperature
-			  << ", activity=" << activity << ", dt=" << dt << ", nb_iters="
-			  << n_iters << "\n";
+	std::cout << "# rho=" << rho << ", n_parts=" << n_parts
+	          << ", pot_strength=" << pot_strength << ", temperature="
+			  << temperature << ", rot_dif=" << rot_dif << ", activity="
+			  << activity << ", dt=" << dt << ", nb_iters=" << n_iters << "\n";
 	std::cout << std::endl;
 }
