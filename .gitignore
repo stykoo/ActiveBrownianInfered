@@ -1,0 +1,7 @@
+ActiveBrownian
+*.o
+*.dat
+*.log
+*_test
+html/
+latex/
