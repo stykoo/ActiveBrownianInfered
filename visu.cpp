@@ -28,6 +28,13 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include "visu.h"
 #include <iostream>
 
+/*!
+ * \brief Constructor for visualization
+ *
+ * \param state Pointer to the state of the system
+ * \param len Length of the box
+ * \param n_parts Number of particles
+ */
 Visu::Visu(const State *state, const double len, const long n_parts) :
 	state(state), len(len), n_parts(n_parts), scale(windowSize / len) {
 }
@@ -43,10 +50,9 @@ void Visu::run() {
     window.create(sf::VideoMode(windowSize, windowSize),
 	              "Active Brownian Particles");
 
-    sf::CircleShape circle(Visu::circleRad);
-	circle.setFillColor(sf::Color::Green);
+    sf::CircleShape circle(scale);
 
-    window.setFramerateLimit(Visu::FPS);
+    window.setFramerateLimit(FPS);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -55,7 +61,7 @@ void Visu::run() {
                 window.close();
         }
 
-        window.clear(sf::Color::Black);
+        window.clear(sf::Color::White);
 
 		for (long i = 0 ; i < n_parts ; ++i) {
 			float x = state->getPos(i)[0] * scale; 
@@ -63,8 +69,47 @@ void Visu::run() {
 			float y = state->getPos(i)[1] * scale; 
 			pbc(y, (float) windowSize);
 			circle.setPosition(x, y);
+			circle.setFillColor(colorFromAngle(state->getAngle(i)));
             window.draw(circle);
 		}
         window.display();
     }
+}
+
+/*!
+ * \brief Associate a color to an angle
+ *
+ * Use HSV representation with H = angle in degrees, S = 1, V = 1
+ * 
+ * \param angle Angle between 0 and 2pi
+ * \return SFML color
+ */
+sf::Color colorFromAngle(const double angle) {
+	const int hue = (int) (angle * 180. / M_PI);
+	const float sat = 1.0;
+	const float val = 1.0;
+
+	int h = hue/60;
+	float f = float(hue)/60-h;
+	float p = val*(1.f-sat);
+	float q = val*(1.f-sat*f);
+	float t = val*(1.f-sat*(1-f));
+
+	switch(h)
+	{
+		default:
+		case 0:
+		case 6:
+			return sf::Color(val*255, t*255, p*255);
+		case 1:
+			return sf::Color(q*255, val*255, p*255);
+		case 2:
+			return sf::Color(p*255, val*255, t*255);
+		case 3:
+		 	return sf::Color(p*255, q*255, val*255);
+		case 4:
+			return sf::Color(t*255, p*255, val*255);
+		case 5:
+			return sf::Color(val*255, p*255, q*255);
+	}
 }

@@ -55,6 +55,11 @@ class State {
 			return positions[i];
 		}
 
+		//! Get angle of particle i
+		double getAngle(size_t i) const {
+			return angles[i];
+		}
+
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces

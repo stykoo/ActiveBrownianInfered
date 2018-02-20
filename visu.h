@@ -40,8 +40,7 @@ class Visu {
 
 	private:
 		// Constant variables for visualization
-		const int windowSize = 800; //!< Size of the window
-		const float circleRad = 5.0; //!< Radius of the particles on the screen
+		const int windowSize = 600; //!< Size of the window
 		const int FPS = 24; //!< Number of frames per second
 
 		const State *state; //!< Pointer to the state of the system
@@ -50,5 +49,7 @@ class Visu {
 
 		const float scale; //!< Scale from data to window
 };
+
+sf::Color colorFromAngle(const double angle);
 
 #endif // ACTIVEBROWNIAN_VISU_H_
