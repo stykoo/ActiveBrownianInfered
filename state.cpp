@@ -114,7 +114,7 @@ void State::calcInternalForces() {
 			double dr2 = dx * dx + dy * dy;
 
             if(dr2 < 1. && dr2 > 0.) {
-				double u = 1.0 / std::sqrt(dr2) - 1.0;
+				double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
 				double fx = u * dx;
 				double fy = u * dy;
 

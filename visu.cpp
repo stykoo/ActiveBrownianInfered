@@ -50,7 +50,8 @@ void Visu::run() {
     window.create(sf::VideoMode(windowSize, windowSize),
 	              "Active Brownian Particles");
 
-    sf::CircleShape circle(scale);
+	// We assume that the particles have diameter 1
+    sf::CircleShape circle(scale / 2.0);
 
     window.setFramerateLimit(FPS);
 
