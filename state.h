@@ -31,68 +31,11 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <array>
-#include <forward_list>
 #include <random>
+#include "boxes.h"
 
 //! Type name for vector of positions
 typedef std::vector< std::array<double, 2> > PositionVec;
-
-class State; // Forward declaration
-
-/*!
- * \brief Class for the boxes in which particles are.
- *
- * We divide the space into boxes of size approximately 1 and classify
- * the particles accordingly. This enables us to compute the internal forces
- * in (expected) linear time with respect to the number of particles.
- */
-class Boxes {
-	public:
-		Boxes(const double len, const long n_parts);
-		void update(const State *state); //!< Update according to state
-
-		//!< Return the number of boxes
-		long getNBoxes() const {
-			return n_boxes;
-		}
-
-		//!< Return an iterator to the begin of the neighbors' list of box i.
-		auto getNbrsBegin(const size_t i) const {
-			return nbrs[i].cbegin();
-		}
-		//!< Return an iterator to the begin of the neighbors' list of box i.
-		auto getNbrsEnd(const size_t i) const {
-			return nbrs[i].cend();
-		}
-
-		//!< Return the box in which particle i is.
-		long getBoxOfPart(const size_t i) const {
-			return box_of_part[i];
-		}
-
-		//!< Return an iterator to the begin of the list of particles in box i.
-		auto getPartsOfBoxBegin(const size_t i) const {
-			return parts_of_box[i].cbegin();
-		}
-		//!< Return an iterator to the end of the list of particles in box i.
-		auto getPartsOfBoxEnd(const size_t i) const {
-			return parts_of_box[i].cend();
-		}
-
-	private:
-		void computeNbrs(); //!< Compute the neighboring boxes of a given box
-
-		const long n_boxes_x; //!< Number of boxes in one direction
-		const long n_boxes; //!< Total number of boxes
-		const double len_box; //!< Length of a box (approximately 1)
-		const long n_parts; //!< Number of particles
-		//! Neighboring boxes of a given box
-		std::vector< std::array<long, 9> > nbrs; 
-
-		std::vector<long> box_of_part; // Box in which each particle is
-		//!< Particles in a given box
-		std::vector< std::forward_list<long> > parts_of_box;
-};
 
 /*!
  * \brief Class for the state of the system
@@ -139,14 +82,13 @@ class State {
 		//! Gaussian noise for angle
 		std::normal_distribution<double> noiseAngle;
 
-		Boxes boxes; //!< Boxes for algorithm
+		Boxes<2> boxes; //!< Boxes for algorithm
 
 		//! Positions of the particles
 		std::vector< std::array<double, 2> > positions;
 		std::vector<double> angles; //<! Angles
 		std::vector< std::array<double, 2> > forces;  //!< Internal forces
 };
-
 
 /*! 
  * \brief Periodic boundary conditions on a segment
@@ -187,23 +129,6 @@ template<typename T, typename U>
 void pbcOffset(T &x, U &o, const T L) {
 	o = (U) std::floor(x / L);
 	x -= L * o;
-}
-
-/*! 
- * \brief Compute a to the power b for b positive integer
- * 
- * \param a Number
- * \param b Power (positive integer)
- * \return a to the power b
- */
-template<typename T, typename U>
-int mypow(const T a, const U b) {
-    if (b <= 0)
-        return 1;
-    if (b % 2 == 1)
-        return a * mypow(a, b-1);
-    T c = mypow(a, b/2);
-    return c * c;
 }
 
 #endif // ACTIVEBROWNIAN_STATE_H_

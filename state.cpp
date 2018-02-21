@@ -31,64 +31,6 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 // #include <iostream>
 #include "state.h"
 
-/*
- * \brief Constructor of boxes.
- *
- * Construct the boxes with which we will be able to classify the particles.
- *
- * \param len Length of the system
- * \param n_parts Number of particles
- */
-Boxes::Boxes(const double len, const long n_parts) :
-		n_boxes_x(std::floor(len)), n_boxes(n_boxes_x * n_boxes_x),
-		len_box(len / n_boxes_x), n_parts(n_parts) {
-	nbrs.resize(n_boxes);
-	computeNbrs();
-	box_of_part.resize(n_parts);
-	parts_of_box.resize(n_boxes);
-}
-
-/*
- * \brief Classify the particles of a state in the boxes.
- * 
- * Warning: the state should be consistent with the Boxes object!
- *
- * \param state State of the system
- */
-void Boxes::update(const State *state) {
-    for (long i=0 ; i < n_boxes ; ++i) {
-		parts_of_box[i].clear();
-	}
-
-    for (long i=0 ; i < n_parts ; ++i) {
-		long bx = (long) std::floor(state->getPosX(i) / len_box);
-		long by = (long) std::floor(state->getPosY(i) / len_box);
-		long box = by * n_boxes_x + bx;
-		box_of_part[i] = box;
-		parts_of_box[box].push_front(i);
-	}
-}
-
-/*
- * \brief Compute the numbers of the neighboring boxes of each box.
- */
-void Boxes::computeNbrs() {
-	for (long i = 0 ; i < n_boxes ; ++i) {
-		long xs[3];
-		long ys[3];
-		xs[1] = i % n_boxes_x;
-		ys[1] = i / n_boxes_x;
-		xs[0] = (xs[1] + n_boxes_x - 1) % n_boxes_x;
-		ys[0] = (ys[1] + n_boxes_x - 1) % n_boxes_x;
-		xs[2] = (xs[1] + 1) % n_boxes_x;
-		ys[2] = (ys[1] + 1) % n_boxes_x;
-
-		for (int k = 0 ; k < 9 ; ++k) {
-			nbrs[i][k] = ys[k / 3] * n_boxes_x + xs[k % 3];
-		}
-	}
-}
-
 /*!
  * \brief Constructor of State
  *
@@ -175,7 +117,7 @@ void State::calcInternalForces() {
     }
 
 	// Recompute the boxes
-	boxes.update(this);
+	boxes.update(&positions);
 
     for (long i = 0 ; i < n_parts ; ++i) {
 		long k = boxes.getBoxOfPart(i);
