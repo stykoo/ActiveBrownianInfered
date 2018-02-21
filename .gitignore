@@ -3,6 +3,8 @@ ActiveBrownian
 *.dat
 *.log
 *.cmake
+*.swp
+*.swo
 Makefile
 CMakeCache.txt
 CMakeFiles

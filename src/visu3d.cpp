@@ -25,6 +25,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * The system is visualized using the VTK library.
 */
 
+#include <vector>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkRenderWindow.h>
@@ -32,14 +33,42 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <vtkRenderWindowInteractor.h>
 #include <vtkPolyData.h>
 #include <vtkSphereSource.h>
-#include <vtkAxesActor.h>
+//#include <vtkAxesActor.h>
 #include <vtkTransform.h>
 #include <vtkSmartPointer.h>
+#include <vtkCommand.h>
 
 #include "visu3d.h"
 
 template<typename T>
 using vSP = vtkSmartPointer<T>; // Shortcut
+
+struct Visu3dTimer : public vtkCommand {
+	public:
+		vtkTypeMacro(Visu3dTimer, vtkCommand);
+		static Visu3dTimer *New() {
+    		return new Visu3dTimer();
+  		}
+
+		void Execute(vtkObject *caller, unsigned long vtkNotUsed(eventId),
+					   void *vtkNotUsed(callData)) {
+			vtkRenderWindowInteractor *iren =
+				static_cast<vtkRenderWindowInteractor*>(caller);
+
+			// Update the positions
+			for (size_t i = 0 ; i < sphereActors->size() ; ++i) {
+				(*sphereActors)[i]->SetPosition(state->getPosX(i),
+                                                state->getPosY(i),
+											    state->getPosZ(i));
+			}
+
+			iren->Render();
+		}
+
+	// Public attributes (this is dirty...)
+	std::vector< vSP<vtkActor> > *sphereActors;
+	const State3d *state;
+};
 
 /*!
  * \brief Constructor for visualization
@@ -59,17 +88,27 @@ Visu3d::Visu3d(const State3d *state, const double len, const long n_parts) :
  * positions while the simulation is runing.
  */
 void Visu3d::run() {
-	vSP<vtkSphereSource> sphereSource = vSP<vtkSphereSource>::New();
-	sphereSource->SetCenter(0.0, 0.0, 0.0);
-	sphereSource->SetRadius(0.5);
+	std::vector< vSP<vtkSphereSource> > sphereSources;
+	std::vector< vSP<vtkPolyDataMapper> > sphereMappers;
+	std::vector< vSP<vtkActor> > sphereActors;
 
-	  //create a mapper
-	vSP<vtkPolyDataMapper> sphereMapper = vSP<vtkPolyDataMapper>::New();
-	sphereMapper->SetInputConnection(sphereSource->GetOutputPort());
+	for (long i = 0 ; i < n_parts ; ++i) {
+		sphereSources.push_back(vSP<vtkSphereSource>::New());
+		//sphereSources[i]->SetCenter(state->getPosX(i), state->getPosY(i),
+				                    //state->getPosZ(i));
+		sphereSources[i]->SetRadius(0.5);
 
-	// create an actor
-	vSP<vtkActor> sphereActor = vSP<vtkActor>::New();
-	sphereActor->SetMapper(sphereMapper);
+		//create a mapper
+		sphereMappers.push_back(vSP<vtkPolyDataMapper>::New());
+		sphereMappers[i]->SetInputConnection(sphereSources[i]->GetOutputPort());
+
+		// create an actor
+		sphereActors.push_back(vSP<vtkActor>::New());
+		sphereActors[i]->SetMapper(sphereMappers[i]);
+		sphereActors[i]->SetPosition(state->getPosX(i), state->getPosY(i),
+				                     state->getPosZ(i));
+
+	}
 
 	// a renderer and render window
 	vSP<vtkRenderer> renderer = vSP<vtkRenderer>::New();
@@ -82,22 +121,21 @@ void Visu3d::run() {
 	renderWindowInteractor->SetRenderWindow(renderWindow);
 
 	// add the actors to the scene
-	renderer->AddActor(sphereActor);
+	for (long i = 0 ; i < n_parts ; ++i) {
+		renderer->AddActor(sphereActors[i]);
+	}
 	renderer->SetBackground(.1,.2,.3); // Background dark blue
 
-	vSP<vtkTransform> transform = vSP<vtkTransform>::New();
-	transform->Translate(1.0, 0.0, 0.0);
+	// Take care of animation
+	renderWindowInteractor->Initialize();
+	renderWindowInteractor->CreateRepeatingTimer(delay);
+	vtkSmartPointer<Visu3dTimer> timerCallback =
+		vtkSmartPointer<Visu3dTimer>::New();
+	timerCallback->sphereActors = &sphereActors;
+	timerCallback->state = state;
+	renderWindowInteractor->AddObserver(vtkCommand::TimerEvent, timerCallback);
 
-	vSP<vtkAxesActor> axes = vSP<vtkAxesActor>::New();
-
-	// The axes are positioned with a user transform
-	axes->SetUserTransform(transform);
-	renderer->AddActor(axes);
-
-	renderer->ResetCamera();
+	// Render and interact
 	renderWindow->Render();
-
-	// begin mouse interaction
 	renderWindowInteractor->Start();
 }
-

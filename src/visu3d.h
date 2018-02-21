@@ -37,7 +37,7 @@ class Visu3d {
 
 	private:
 		// Constant variables for visualization
-		const int FPS = 24; //!< Number of frames per second
+		const int delay = 100; //!< Number of milliseconds between frames
 
 		const State3d *state; //!< Pointer to the state of the system
 		const double len; //!< Length of the box

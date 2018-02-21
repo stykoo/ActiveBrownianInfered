@@ -99,7 +99,7 @@ Simul::Simul(int argc, char **argv) {
 	}
 
 	if (sim3d) {
-		len = std::pow(n_parts, 1.0 / 3.0);
+		len = std::cbrt(n_parts / rho);
 	} else {
 		len = std::sqrt(n_parts / rho);
 	}
