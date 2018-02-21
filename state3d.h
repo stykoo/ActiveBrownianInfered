@@ -20,32 +20,34 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 /*!
  * \file state.h
  * \author Alexis Poncet <aponcet@lptmc.jussieu.fr>
- * \brief State of the system
+ * \brief State of the system in dimension 3
  *
- * Header file for state.h.
- * It defines the class State.
+ * Header file for state3d.cpp
+ * It defines the class State3d.
  */
 
-#ifndef ACTIVEBROWNIAN_STATE_H_
-#define ACTIVEBROWNIAN_STATE_H_
+#ifndef ACTIVEBROWNIAN_STATE3D_H_
+#define ACTIVEBROWNIAN_STATE3D_H_
 
 #include <vector>
 #include <array>
 #include <random>
+#include "pointOnSphere.h"
 #include "boxes.h"
 
 /*!
- * \brief Class for the state of the system
+ * \brief Class for the state of the system in dimension 3
  *
  * This class takes care of the initialization
  * and the evolution of the state of the system.
  */
-class State {
+class State3d {
 	public:
 		//! Constructor of State
-		State(const double _len, const long _n_parts,
-		      const double _pot_strength, const double _temperature,
-			  const double _rot_dif, const double _activity, const double _dt);
+		State3d(const double _len, const long _n_parts,
+		        const double _pot_strength, const double _temperature,
+			    const double _rot_dif, const double _activity,
+				const double _dt);
 		void evolve(); //!< Do one time step
 
 		//! Get the x coordinate of the position of particle i  
@@ -56,10 +58,14 @@ class State {
 		double getPosY(size_t i) const {
 			return positions[i][1];
 		}
+		//! Get the z coordinate of the position of particle i  
+		double getPosZ(size_t i) const {
+			return positions[i][2];
+		}
 
-		//! Get angle of particle i
-		double getAngle(size_t i) const {
-			return angles[i];
+		//! Get orientation of particle i
+		PointOnSphere getOrient(size_t i) const {
+			return orients[i];
 		}
 
 
@@ -77,55 +83,14 @@ class State {
 		//! Gaussian noise for temperature
 		std::normal_distribution<double> noiseTemp;
 		//! Gaussian noise for angle
-		std::normal_distribution<double> noiseAngle;
+		const double stddevOrient;
 
-		Boxes<2> boxes; //!< Boxes for algorithm
+		Boxes<3> boxes; //!< Boxes for algorithm
 
 		//! Positions of the particles
-		std::vector< std::array<double, 2> > positions;
-		std::vector<double> angles; //<! Angles
-		std::vector< std::array<double, 2> > forces;  //!< Internal forces
+		std::vector< std::array<double, 3> > positions;
+		std::vector<PointOnSphere> orients; //<! Orientations
+		std::vector< std::array<double, 3> > forces;  //!< Internal forces
 };
 
-/*! 
- * \brief Periodic boundary conditions on a segment
- * 
- * Update x to be between 0 and L.
- *
- * \param x Value
- * \param L Length of the box
- */
-template<typename T>
-void pbc(T &x, const T L){
-	x -= L * std::floor(x / L);
-}
-
-/*! 
- * \brief Periodic boundary conditions on a segment (symmetric)
- * 
- * Update x to be between -L/2 and L/2.
- *
- * \param x Value
- * \param L Length of the box
- */
-template<typename T>
-void pbcSym(T &x, const T L) {
-	x -= L * std::round(x / L);
-}
-
-/*! 
- * \brief Periodic boundary conditions on a segment, with offset
- * 
- * Update x to be between 0 and L, and o to be the corresponding offset
- *
- * \param x Value
- * \param o Offset
- * \param L Length of the box
- */
-template<typename T, typename U>
-void pbcOffset(T &x, U &o, const T L) {
-	o = (U) std::floor(x / L);
-	x -= L * o;
-}
-
-#endif // ACTIVEBROWNIAN_STATE_H_
+#endif // ACTIVEBROWNIAN_STATE3D_H_
