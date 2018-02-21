@@ -62,7 +62,8 @@ class Simul {
 		double rot_dif; //!< Rotational diffusivity
 		double activity; //!< Activity
 		double dt; //!< Timestep
-		long n_iters; //!w Number of time iterations
+		long n_iters; //!< Number of time iterations
+		bool sim3d; //!< Simulation in 3d instead of 2d
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 		double len; //!< Length of the box
 

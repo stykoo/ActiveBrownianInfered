@@ -31,6 +31,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/program_options.hpp>
 #include "simul.h"
 #include "state.h"
+#include "state3d.h"
 #include "visu.h"
 
 namespace po = boost::program_options;
@@ -61,6 +62,7 @@ Simul::Simul(int argc, char **argv) {
 		("dt,t", po::value<double>(&dt)->required(), "Timestep")
 		("iters,I", po::value<long>(&n_iters)->required(),
 		 "Number of time iterations")
+		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
 		("help,h", "Print help message and exit")
@@ -95,7 +97,11 @@ Simul::Simul(int argc, char **argv) {
 		return;
 	}
 
-	len = std::sqrt(n_parts / rho);
+	if (sim3d) {
+		len = std::pow(n_parts, 1.0 / 3.0);
+	} else {
+		len = std::sqrt(n_parts / rho);
+	}
 }
 
 /*!
@@ -112,30 +118,55 @@ void Simul::run() {
 		return;
 	}
 
-	// Initialize the state of the system
-	State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-	            dt);
-	
-	// Start thread for visualization
-	Visu visu(&state, len, n_parts);
-	std::thread thVisu(&Visu::run, &visu); 
+	if (sim3d) {
+		// Initialize the state of the system
+		State3d state(len, n_parts, pot_strength, temperature, rot_dif,
+				      activity, dt);
+		
+		// Start thread for visualization
+		//Visu visu(&state, len, n_parts);
+		//std::thread thVisu(&Visu::run, &visu); 
 
-	// Time evolution
-	for (long t = 0 ; t < n_iters ; ++t) {
-		state.evolve();
-		if (sleep > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+		// Time evolution
+		for (long t = 0 ; t < n_iters ; ++t) {
+			state.evolve();
+			if (sleep > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			}
 		}
-	}
 
-	thVisu.join();
+		//thVisu.join();
+	} else {
+		// Initialize the state of the system
+		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
+					dt);
+		
+		// Start thread for visualization
+		Visu visu(&state, len, n_parts);
+		std::thread thVisu(&Visu::run, &visu); 
+
+		// Time evolution
+		for (long t = 0 ; t < n_iters ; ++t) {
+			state.evolve();
+			if (sleep > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			}
+		}
+
+		thVisu.join();
+	}
 }
 
 /*!
  * \brief Print the parameters of the simulation
  */
 void Simul::print() const {
-	std::cout << "# rho=" << rho << ", n_parts=" << n_parts
+	if (sim3d) {
+		std::cout << "# [3d] ";
+	} else {
+		std::cout << "# [2d] ";
+	}
+	std::cout << "rho=" << rho << ", n_parts=" << n_parts
 	          << ", pot_strength=" << pot_strength << ", temperature="
 			  << temperature << ", rot_dif=" << rot_dif << ", activity="
 			  << activity << ", dt=" << dt << ", nb_iters=" << n_iters << "\n";
