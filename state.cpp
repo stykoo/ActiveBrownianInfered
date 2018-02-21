@@ -28,6 +28,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 #include <chrono>
+// #include <iostream>
 #include "state.h"
 
 /*
@@ -76,12 +77,12 @@ void Boxes::computeNbrs() {
 	for (long i = 0 ; i < n_boxes ; ++i) {
 		long xs[3];
 		long ys[3];
-		xs[0] = i % n_boxes_x;
-		ys[0] = i / n_boxes_x;
-		xs[1] = (xs[0] + n_boxes_x - 1) % n_boxes_x;
-		ys[1] = (ys[0] + n_boxes_x - 1) % n_boxes_x;
-		xs[2] = (xs[0] + 1) % n_boxes_x;
-		ys[2] = (ys[0] + 1) % n_boxes_x;
+		xs[1] = i % n_boxes_x;
+		ys[1] = i / n_boxes_x;
+		xs[0] = (xs[1] + n_boxes_x - 1) % n_boxes_x;
+		ys[0] = (ys[1] + n_boxes_x - 1) % n_boxes_x;
+		xs[2] = (xs[1] + 1) % n_boxes_x;
+		ys[2] = (ys[1] + 1) % n_boxes_x;
 
 		for (int k = 0 ; k < 9 ; ++k) {
 			nbrs[i][k] = ys[k / 3] * n_boxes_x + xs[k % 3];
@@ -129,6 +130,16 @@ State::State(const double _len, const long _n_parts,
 		forces[i][0] = 0;
 		forces[i][1] = 0;
 	}
+
+	/* std::cout << boxes.getNBoxes() << std::endl;
+	for (long i = 0 ; i < boxes.getNBoxes() ; ++i) {
+		std::cout << "[" << i << "] :";
+		for (auto it = boxes.getNbrsBegin(i) ; it != boxes.getNbrsEnd(i) ;
+		     ++it) {
+			std::cout << " " << *it;
+		}
+		std::cout << std::endl;
+	} */
 }
 
 /*!
@@ -164,10 +175,15 @@ void State::calcInternalForces() {
 		forces[i][1] = 0;
     }
 
+	// Recompute the boxes
 	boxes.update(this);
 
     for (long i = 0 ; i < n_parts ; ++i) {
-		for(auto it_b = boxes.getNbrsBegin(i) ; it_b != boxes.getNbrsEnd(i) ; 
+		long k = boxes.getBoxOfPart(i);
+		/*std::cout << "(" << positions[i][0] << ", " << positions[i][1]
+			      << ") -> " << k << "\n";*/
+
+		for(auto it_b = boxes.getNbrsBegin(k) ; it_b != boxes.getNbrsEnd(k) ; 
 		    ++it_b) {
             for (auto it_j = boxes.getPartsOfBoxBegin(*it_b) ;
                  it_j != boxes.getPartsOfBoxEnd(*it_b) && (*it_j) > i ;
