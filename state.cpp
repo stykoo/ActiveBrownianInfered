@@ -30,6 +30,65 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <chrono>
 #include "state.h"
 
+/*
+ * \brief Constructor of boxes.
+ *
+ * Construct the boxes with which we will be able to classify the particles.
+ *
+ * \param len Length of the system
+ * \param n_parts Number of particles
+ */
+Boxes::Boxes(const double len, const long n_parts) :
+		n_boxes_x(std::floor(len)), n_boxes(n_boxes_x * n_boxes_x),
+		len_box(len / n_boxes_x), n_parts(n_parts) {
+	nbrs.resize(n_boxes);
+	computeNbrs();
+	box_of_part.resize(n_parts);
+	parts_of_box.resize(n_boxes);
+}
+
+/*
+ * \brief Classify the particles of a state in the boxes.
+ * 
+ * Warning: the state should be consistent with the Boxes object!
+ *
+ * \param state State of the system
+ */
+void Boxes::update(const State *state) {
+    for (long i=0 ; i < n_boxes ; ++i) {
+		parts_of_box[i].clear();
+	}
+
+    for (long i=0 ; i < n_parts ; ++i) {
+		std::array<double, 2> pos = state->getPos(i);
+		long bx = (long) std::floor(pos[0] / len_box);
+		long by = (long) std::floor(pos[1] / len_box);
+		long box = by * n_boxes_x + bx;
+		box_of_part[i] = box;
+		parts_of_box[box].push_front(i);
+	}
+}
+
+/*
+ * \brief Compute the numbers of the neighboring boxes of each box.
+ */
+void Boxes::computeNbrs() {
+	for (long i = 0 ; i < n_boxes ; ++i) {
+		long xs[3];
+		long ys[3];
+		xs[0] = i % n_boxes_x;
+		ys[0] = i / n_boxes_x;
+		xs[1] = (xs[0] + n_boxes_x - 1) % n_boxes_x;
+		ys[1] = (ys[0] + n_boxes_x - 1) % n_boxes_x;
+		xs[2] = (xs[0] + 1) % n_boxes_x;
+		ys[2] = (ys[0] + 1) % n_boxes_x;
+
+		for (int k = 0 ; k < 9 ; ++k) {
+			nbrs[i][k] = ys[k / 3] * n_boxes_x + xs[k % 3];
+		}
+	}
+}
+
 /*!
  * \brief Constructor of State
  *
@@ -53,7 +112,8 @@ State::State(const double _len, const long _n_parts,
 	// Gaussian noise from the temperature
 	noiseTemp(0.0, std::sqrt(2.0 * _temperature * dt)),
 	// Gaussian noise from the rotational diffusivity
-	noiseAngle(0.0, std::sqrt(2.0 * _rot_dif * dt))
+	noiseAngle(0.0, std::sqrt(2.0 * _rot_dif * dt)),
+	boxes(_len, _n_parts)
 {
 	positions.resize(n_parts);
 	angles.resize(n_parts);
@@ -96,8 +156,45 @@ void State::evolve() {
 
 /* \brief Compute the forces between the particles.
  *
- * Implement a screened dipole-dipole interaction.
+ * Implement harmonic spheres.
  */
+void State::calcInternalForces() {
+    for (long i = 0 ; i < n_parts ; ++i) {
+		forces[i][0] = 0;
+		forces[i][1] = 0;
+    }
+
+	boxes.update(this);
+
+    for (long i = 0 ; i < n_parts ; ++i) {
+		for(auto it_b = boxes.getNbrsBegin(i) ; it_b != boxes.getNbrsEnd(i) ; 
+		    ++it_b) {
+            for (auto it_j = boxes.getPartsOfBoxBegin(*it_b) ;
+                 it_j != boxes.getPartsOfBoxEnd(*it_b) && (*it_j) > i ;
+                 ++it_j) {
+				double dx = positions[i][0] - positions[*it_j][0];
+				double dy = positions[i][1] - positions[*it_j][1];
+				// We want the periodized interval to be centered in 0
+				pbcSym(dx, len);
+				pbcSym(dy, len);
+				double dr2 = dx * dx + dy * dy;
+
+				if(dr2 < 1. && dr2 > 0.) {
+					double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
+					double fx = u * dx;
+					double fy = u * dy;
+
+					forces[i][0] += fx;
+					forces[*it_j][0] -= fx;
+					forces[i][1] += fy;
+					forces[*it_j][1] -= fy;
+				}
+			}
+		}
+    }
+}
+
+/*
 void State::calcInternalForces() {
     for (long i = 0 ; i < n_parts ; ++i) {
 		forces[i][0] = 0;
@@ -126,8 +223,10 @@ void State::calcInternalForces() {
         }
     }
 }
+*/
 
-/* \brief Enforce periodic boundary conditions
+/* 
+ * \brief Enforce periodic boundary conditions
  */
 void State::enforcePBC() {
 	for (long i = 0 ; i < n_parts ; ++i) {

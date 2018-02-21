@@ -36,7 +36,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * \param n_parts Number of particles
  */
 Visu::Visu(const State *state, const double len, const long n_parts) :
-	state(state), len(len), n_parts(n_parts), scale(windowSize / len) {
+	state(state), len(len), n_parts(n_parts) {
 }
 
 /*!
@@ -46,10 +46,14 @@ Visu::Visu(const State *state, const double len, const long n_parts) :
  * positions at a certain number of FPS while the simulation is runing.
  */
 void Visu::run() {
+	sf::VideoMode mode = sf::VideoMode::getDesktopMode();
+	const float windowSize = std::min(mode.width, mode.height) * 9 / 10;
+
     sf::RenderWindow window;
     window.create(sf::VideoMode(windowSize, windowSize),
 	              "Active Brownian Particles");
 
+	float scale = windowSize / len;
 	// We assume that the particles have diameter 1
     sf::CircleShape circle(scale / 2.0);
 

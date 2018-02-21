@@ -40,14 +40,12 @@ class Visu {
 
 	private:
 		// Constant variables for visualization
-		const int windowSize = 600; //!< Size of the window
+		// const int windowSize = 600; //!< Size of the window
 		const int FPS = 24; //!< Number of frames per second
 
 		const State *state; //!< Pointer to the state of the system
 		const double len; //!< Length of the box
 		const long n_parts; //!< Number of particles
-
-		const float scale; //!< Scale from data to window
 };
 
 sf::Color colorFromAngle(const double angle);
