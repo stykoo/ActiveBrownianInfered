@@ -108,9 +108,13 @@ class State {
 			  const double _rot_dif, const double _activity, const double _dt);
 		void evolve(); //!< Do one time step
 
-		//! Get the position of particle i
-		std::array<double, 2> getPos(size_t i) const {
-			return positions[i];
+		//! Get the x coordinate of the position of particle i  
+		double getPosX(size_t i) const {
+			return positions[i][0];
+		}
+		//! Get the y coordinate of the position of particle i  
+		double getPosY(size_t i) const {
+			return positions[i][1];
 		}
 
 		//! Get angle of particle i

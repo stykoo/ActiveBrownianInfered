@@ -61,9 +61,8 @@ void Boxes::update(const State *state) {
 	}
 
     for (long i=0 ; i < n_parts ; ++i) {
-		std::array<double, 2> pos = state->getPos(i);
-		long bx = (long) std::floor(pos[0] / len_box);
-		long by = (long) std::floor(pos[1] / len_box);
+		long bx = (long) std::floor(state->getPosX(i) / len_box);
+		long by = (long) std::floor(state->getPosY(i) / len_box);
 		long box = by * n_boxes_x + bx;
 		box_of_part[i] = box;
 		parts_of_box[box].push_front(i);

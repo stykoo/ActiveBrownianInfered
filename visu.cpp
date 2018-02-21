@@ -56,6 +56,9 @@ void Visu::run() {
 	float scale = windowSize / len;
 	// We assume that the particles have diameter 1
     sf::CircleShape circle(scale / 2.0);
+	// Line for showing the orientation of the particles
+	sf::RectangleShape line(sf::Vector2f(scale / 2.0, 2.0));
+	line.setFillColor(sf::Color::Black);
 
     window.setFramerateLimit(FPS);
 
@@ -69,13 +72,29 @@ void Visu::run() {
         window.clear(sf::Color::White);
 
 		for (long i = 0 ; i < n_parts ; ++i) {
-			float x = state->getPos(i)[0] * scale; 
+			float x = state->getPosX(i) * scale; 
 			pbc(x, (float) windowSize);
-			float y = state->getPos(i)[1] * scale; 
+			float y = state->getPosY(i) * scale; 
 			pbc(y, (float) windowSize);
-			circle.setPosition(x, y);
+
+			// Angle is coded both as color and as arrow
 			circle.setFillColor(colorFromAngle(state->getAngle(i)));
-            window.draw(circle);
+			line.setRotation(state->getAngle(i) * 180.0 / M_PI);
+
+			// Draw multiple times if on the boundary
+			int per_x = (x > windowSize - scale);
+			int per_y = (y > windowSize - scale);
+
+			for (int px = 0 ; px <= per_x ; ++px) {
+				for (int py = 0 ; py <= per_y ; ++py) {
+					circle.setPosition(x - px * windowSize,
+					                   y - py * windowSize);
+					window.draw(circle);
+					line.setPosition(x - px * windowSize + scale / 2.0,
+					                 y - py * windowSize + scale / 2.0);
+					window.draw(line);
+				}
+			}
 		}
         window.display();
     }
