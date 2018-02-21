@@ -20,6 +20,8 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Threads)
 find_package(Boost REQUIRED program_options)
 find_package(SFML REQUIRED system window graphics)
+find_package(VTK REQUIRED)
+include(${VTK_USE_FILE})
 
 # Configuration of the executable
 file(
@@ -38,4 +40,5 @@ target_link_libraries(
 	${CMAKE_THREAD_LIBS_INIT}
 	${Boost_LIBRARIES}
 	${SFML_LIBRARIES}
+	${VTK_LIBRARIES}
 )

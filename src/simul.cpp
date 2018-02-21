@@ -33,6 +33,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include "state.h"
 #include "state3d.h"
 #include "visu.h"
+#include "visu3d.h"
 
 namespace po = boost::program_options;
 
@@ -124,8 +125,8 @@ void Simul::run() {
 				      activity, dt);
 		
 		// Start thread for visualization
-		//Visu visu(&state, len, n_parts);
-		//std::thread thVisu(&Visu::run, &visu); 
+		Visu3d visu(&state, len, n_parts);
+		std::thread thVisu(&Visu3d::run, &visu); 
 
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
@@ -135,7 +136,7 @@ void Simul::run() {
 			}
 		}
 
-		//thVisu.join();
+		thVisu.join();
 	} else {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
