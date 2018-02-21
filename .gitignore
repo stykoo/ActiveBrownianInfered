@@ -2,6 +2,10 @@ ActiveBrownian
 *.o
 *.dat
 *.log
-*_test
+*.cmake
+Makefile
+CMakeCache.txt
+CMakeFiles
+bin/
 html/
 latex/
