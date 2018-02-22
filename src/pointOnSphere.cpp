@@ -56,7 +56,7 @@ void PointOnSphere::randomRotation(const double stddev, std::mt19937 &rng) {
 	std::uniform_real_distribution<double> distUnif(0, 2.0 * M_PI);
 	std::normal_distribution<double> distGauss(0, stddev);
 	double phi = distUnif(rng);
-	double theta = distUnif(rng);
+	double theta = distGauss(rng);
 
 	// Generate new point
 	double cr = std::cos(theta);

@@ -85,7 +85,9 @@ State3d::State3d(const double _len, const long _n_parts,
 			std::cout << " " << *it;
 		}
 		std::cout << std::endl;
-	} */
+	} 
+	std::cout << _temperature << " " << stddevOrient << " " << activity
+		<< std::endl; */
 }
 
 /*!
