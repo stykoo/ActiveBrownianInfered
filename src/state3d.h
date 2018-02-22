@@ -64,8 +64,8 @@ class State3d {
 		}
 
 		//! Get orientation of particle i
-		PointOnSphere getOrient(size_t i) const {
-			return orients[i];
+		const PointOnSphere* getOrient(size_t i) const {
+			return &orients[i];
 		}
 
 

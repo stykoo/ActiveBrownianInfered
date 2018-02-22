@@ -38,10 +38,15 @@ class Visu3d {
 	private:
 		// Constant variables for visualization
 		const int delay = 100; //!< Number of milliseconds between frames
+		const int sphere_res = 20; //!< Resolution of the spheres
+		const double sphere_opa = 1.0; //!< Opacity of the spheres
 
 		const State3d *state; //!< Pointer to the state of the system
 		const double len; //!< Length of the box
 		const long n_parts; //!< Number of particles
 };
+
+void colorFromAngles(double &r, double &g, double &b,
+		             const double theta, const double phi);
 
 #endif // ACTIVEBROWNIAN_VISU3D_H_

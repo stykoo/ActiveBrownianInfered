@@ -60,7 +60,9 @@ class PointOnSphere {
 
 		//! Return theta of spherical coordinates
 		double getTheta() const {
-			return std::acos(coos[2]);
+			// In case we are slightly above or below 1
+			double t = std::max(-1.0, std::min(coos[2], 1.0));
+			return std::acos(t);
 		}
 		//! Return phi of spherical coordinates
 		double getPhi() const {
