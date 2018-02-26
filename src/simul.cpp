@@ -29,6 +29,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <exception>
 #include <thread>
 #include <boost/program_options.hpp>
+#include "observables.h"
 #include "simul.h"
 #include "state.h"
 #include "state3d.h"
@@ -63,6 +64,15 @@ Simul::Simul(int argc, char **argv) {
 		("dt,t", po::value<double>(&dt)->required(), "Timestep")
 		("iters,I", po::value<long>(&n_iters)->required(),
 		 "Number of time iterations")
+		("output,O",
+		 po::value<std::string>(&output)->default_value("observables.h5"),
+		 "Name of the output file")
+		("stepr,s",
+		 po::value<double>(&step_r)->default_value(0.2),
+		 "Spatial resolution for correlations")
+		("divAngle,d",
+		 po::value<long>(&n_div_angle)->default_value(40),
+		 "Number of angular points for correlations")
 		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
@@ -141,6 +151,7 @@ void Simul::run() {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
 					dt);
+		Observables obs(len, n_parts, step_r, n_div_angle);
 		
 		// Start thread for visualization
 		Visu visu(&state, len, n_parts);
@@ -149,10 +160,14 @@ void Simul::run() {
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolve();
+			obs.compute(&state);
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}
 		}
+
+		obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
+				    activity, dt, n_iters);
 
 		thVisu.join();
 	}

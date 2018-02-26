@@ -1,6 +1,7 @@
 ActiveBrownian
 *.o
 *.dat
+*.h5
 *.log
 *.cmake
 *.swp

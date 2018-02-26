@@ -19,6 +19,7 @@ set(CMAKE_CXX_STANDARD 14)
 # Packages needed
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 find_package(Threads)
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
 find_package(Boost REQUIRED program_options)
 find_package(SFML REQUIRED system window graphics)
 find_package(VTK REQUIRED)
@@ -39,6 +40,7 @@ add_executable(
 target_link_libraries(
 	${EXECUTABLE_NAME}
 	${CMAKE_THREAD_LIBS_INIT}
+	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
 	${SFML_LIBRARIES}
 	${VTK_LIBRARIES}

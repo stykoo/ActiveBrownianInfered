@@ -63,8 +63,11 @@ class Simul {
 		double activity; //!< Activity
 		double dt; //!< Timestep
 		long n_iters; //!< Number of time iterations
+		std::string output; //!< Name of the output file
 		bool sim3d; //!< Simulation in 3d instead of 2d
 		int sleep; //!< Number of milliseconds to sleep for between iterations
+		double step_r; //!< Spatial resolution for correlations
+		long n_div_angle; //!< Number of angular points for correlations
 		double len; //!< Length of the box
 
 		SimulInitStatus status; //!< Status after initialization
