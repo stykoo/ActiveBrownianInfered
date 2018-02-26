@@ -28,6 +28,7 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Threads REQUIRED)
 find_package(SFML COMPONENTS system window graphics)
 find_package(VTK)
+include_directories(${HDF5_INCLUDE_DIRS})
 include(${VTK_USE_FILE})
 
 # Executable with visualization
