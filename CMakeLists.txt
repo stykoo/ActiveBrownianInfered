@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
 PROJECT(ActiveBrownian)
+
+# Two executables, one with visualization, the other without
 set(EXECUTABLE_NAME "ActiveBrownian")
+set(EXECUTABLE_NAME_NOVISU "ActiveBrownian_novisu")
 set(EXECUTABLE_OUTPUT_PATH bin/)
 
 # Build in release mode by default
@@ -16,32 +19,64 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 # This is not a strict requirement
 set(CMAKE_CXX_STANDARD 14)
 
+
 # Packages needed
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
-find_package(Threads)
 find_package(HDF5 REQUIRED COMPONENTS C CXX)
-find_package(Boost REQUIRED program_options)
-find_package(SFML REQUIRED system window graphics)
-find_package(VTK REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
+# If any of these is not found, only the novisu executable will be compiled
+find_package(Threads REQUIRED)
+find_package(SFML COMPONENTS system window graphics)
+find_package(VTK)
 include(${VTK_USE_FILE})
 
-# Configuration of the executable
+# Executable with visualization
+if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
+	file(
+		GLOB
+		source_files
+		src/*
+		src/visu/*
+	)
+
+	add_executable(
+		${EXECUTABLE_NAME}
+		${source_files}
+	)
+
+	# Linking
+	target_link_libraries(
+		${EXECUTABLE_NAME}
+		${HDF5_LIBRARIES}
+		${Boost_LIBRARIES}
+		${CMAKE_THREAD_LIBS_INIT}
+		${SFML_LIBRARIES}
+		${VTK_LIBRARIES}
+	)
+
+	message("Threads, SMFL and VTK were found: the executable with vizualization will be built.")
+else()
+	message("Threads, SMFL or VTK was not found: only the executable without vizualization will be built.")
+endif()
+
+
+# Executable without visualization
 file(
-	GLOB_RECURSE
-	source_files
+	GLOB
+	source_files_novisu
 	src/*
 )
+
 add_executable(
-	${EXECUTABLE_NAME}
-	${source_files}
+	${EXECUTABLE_NAME_NOVISU}
+	${source_files_novisu}
 )
 
-# Linking
+# defines NOVISU
+target_compile_definitions(${EXECUTABLE_NAME_NOVISU} PRIVATE NOVISU)
+
 target_link_libraries(
-	${EXECUTABLE_NAME}
-	${CMAKE_THREAD_LIBS_INIT}
+	${EXECUTABLE_NAME_NOVISU}
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
-	${SFML_LIBRARIES}
-	${VTK_LIBRARIES}
 )

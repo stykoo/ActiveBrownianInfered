@@ -28,7 +28,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ACTIVEBROWNIAN_VISU3D_H_
 #define ACTIVEBROWNIAN_VISU3D_H_
 
-#include "state3d.h"
+#include "../state3d.h"
 
 class Visu3d {
 	public:

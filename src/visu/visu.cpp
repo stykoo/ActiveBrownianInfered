@@ -25,8 +25,8 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * The system is visualized using the SFML library.
 */
 
-#include "visu.h"
 #include <iostream>
+#include "visu.h"
 
 /*!
  * \brief Constructor for visualization

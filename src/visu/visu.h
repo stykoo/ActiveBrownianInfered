@@ -31,7 +31,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #define ACTIVEBROWNIAN_VISU_H_
 
 #include <SFML/Graphics.hpp>
-#include "state.h"
+#include "../state.h"
 
 class Visu {
 	public:

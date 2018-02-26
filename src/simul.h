@@ -30,7 +30,6 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
 #include <iostream>
-// #include "state.h"
 
 //! State of the simulation after initialization
 enum SimulInitStatus {
@@ -65,9 +64,11 @@ class Simul {
 		long n_iters; //!< Number of time iterations
 		std::string output; //!< Name of the output file
 		bool sim3d; //!< Simulation in 3d instead of 2d
-		int sleep; //!< Number of milliseconds to sleep for between iterations
 		double step_r; //!< Spatial resolution for correlations
 		long n_div_angle; //!< Number of angular points for correlations
+#ifndef NOVISU
+		int sleep; //!< Number of milliseconds to sleep for between iterations
+#endif
 		double len; //!< Length of the box
 
 		SimulInitStatus status; //!< Status after initialization

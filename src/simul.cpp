@@ -27,14 +27,17 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <exception>
-#include <thread>
 #include <boost/program_options.hpp>
 #include "observables.h"
 #include "simul.h"
 #include "state.h"
 #include "state3d.h"
-#include "visu.h"
-#include "visu3d.h"
+
+#ifndef NOVISU
+#include <thread>
+#include "visu/visu.h"
+#include "visu/visu3d.h"
+#endif
 
 namespace po = boost::program_options;
 
@@ -74,8 +77,10 @@ Simul::Simul(int argc, char **argv) {
 		 po::value<long>(&n_div_angle)->default_value(40),
 		 "Number of angular points for correlations")
 		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
+#ifndef NOVISU
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
+#endif
 		("help,h", "Print help message and exit")
 		;
 
@@ -113,6 +118,12 @@ Simul::Simul(int argc, char **argv) {
 	} else {
 		len = std::sqrt(n_parts / rho);
 	}
+#ifdef NOVISU
+	if (sim3d) {
+		std::cerr << "Currently no output for 3d simulations..." << std::endl;
+		status = SIMUL_INIT_FAILED;
+	}
+#endif
 }
 
 /*!
@@ -135,41 +146,53 @@ void Simul::run() {
 				      activity, dt);
 		
 		// Start thread for visualization
+#ifndef NOVISU
 		Visu3d visu(&state, len, n_parts);
 		std::thread thVisu(&Visu3d::run, &visu); 
+#endif
 
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolve();
+#ifndef NOVISU
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}
+#endif
 		}
 
+#ifndef NOVISU
 		thVisu.join();
+#endif
 	} else {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
 					dt);
 		Observables obs(len, n_parts, step_r, n_div_angle);
 		
+#ifndef NOVISU
 		// Start thread for visualization
 		Visu visu(&state, len, n_parts);
 		std::thread thVisu(&Visu::run, &visu); 
+#endif
 
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolve();
 			obs.compute(&state);
+#ifndef NOVISU
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}
+#endif
 		}
 
 		obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
 				    activity, dt, n_iters);
 
+#ifndef NOVISU
 		thVisu.join();
+#endif
 	}
 }
 
