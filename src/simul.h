@@ -62,6 +62,8 @@ class Simul {
 		double activity; //!< Activity
 		double dt; //!< Timestep
 		long n_iters; //!< Number of time iterations
+		long n_iters_th; //!< Number of time iterations of thermalization
+		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
 		bool sim3d; //!< Simulation in 3d instead of 2d
 		double step_r; //!< Spatial resolution for correlations

@@ -88,7 +88,7 @@ void Observables::compute(const State *state) {
 void Observables::writeH5(const std::string fname, double rho, long n_parts,
 				          double pot_strength, double temperature,
 						  double rot_dif, double activity, double dt,
-						  long n_iters) const {
+						  long n_iters, long n_iters_th, long skip) const {
 	try {
 		H5::H5File file(fname, H5F_ACC_TRUNC);
 
@@ -118,6 +118,12 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 		H5::Attribute a_n_iters = file.createAttribute(
 				"n_iters", H5::PredType::NATIVE_LONG, default_ds);
 		a_n_iters.write(H5::PredType::NATIVE_LONG, &n_iters);
+		H5::Attribute a_n_iters_th = file.createAttribute(
+				"n_iters_th", H5::PredType::NATIVE_LONG, default_ds);
+		a_n_iters_th.write(H5::PredType::NATIVE_LONG, &n_iters_th);
+		H5::Attribute a_skip = file.createAttribute(
+				"skip", H5::PredType::NATIVE_LONG, default_ds);
+		a_skip.write(H5::PredType::NATIVE_LONG, &skip);
 		
 		// We chunk the data and compress it
 		// Chunking should depend on how we intend to read the data

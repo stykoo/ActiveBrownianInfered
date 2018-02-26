@@ -67,6 +67,10 @@ Simul::Simul(int argc, char **argv) {
 		("dt,t", po::value<double>(&dt)->required(), "Timestep")
 		("iters,I", po::value<long>(&n_iters)->required(),
 		 "Number of time iterations")
+		("itersTh,J", po::value<long>(&n_iters_th)->default_value(0),
+		 "Number of time iterations of thermalization")
+		("skip,S", po::value<long>(&skip)->default_value(100),
+		 "Iterations between two computations of observables")
 		("output,O",
 		 po::value<std::string>(&output)->default_value("observables.h5"),
 		 "Name of the output file")
@@ -151,6 +155,10 @@ void Simul::run() {
 		std::thread thVisu(&Visu3d::run, &visu); 
 #endif
 
+		// Thermalization
+		for (long t = 0 ; t < n_iters_th ; ++t) {
+			state.evolve();
+		}
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolve();
@@ -176,10 +184,16 @@ void Simul::run() {
 		std::thread thVisu(&Visu::run, &visu); 
 #endif
 
+		// Thermalization
+		for (long t = 0 ; t < n_iters_th ; ++t) {
+			state.evolve();
+		}
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolve();
-			obs.compute(&state);
+			if (t % skip == 0) {
+				obs.compute(&state);
+			}
 #ifndef NOVISU
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
@@ -188,7 +202,7 @@ void Simul::run() {
 		}
 
 		obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
-				    activity, dt, n_iters);
+				    activity, dt, n_iters, n_iters_th, skip);
 
 #ifndef NOVISU
 		thVisu.join();
@@ -208,6 +222,7 @@ void Simul::print() const {
 	std::cout << "rho=" << rho << ", n_parts=" << n_parts
 	          << ", pot_strength=" << pot_strength << ", temperature="
 			  << temperature << ", rot_dif=" << rot_dif << ", activity="
-			  << activity << ", dt=" << dt << ", nb_iters=" << n_iters << "\n";
+			  << activity << ", dt=" << dt << ", n_iters=" << n_iters
+			  << ", n_iters_th" << n_iters_th << ", skip" << skip << "\n";
 	std::cout << std::endl;
 }

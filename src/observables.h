@@ -40,7 +40,8 @@ class Observables {
 		//! Export to hdf5
 		void writeH5(const std::string fname, double rho, long n_parts,
 	                 double pot_strength, double temperature, double rot_dif,
-				     double activity, double dt, long n_iters) const;
+				     double activity, double dt, long n_iters, long n_iters_th,
+					 long skip) const;
 
 	private:
 		const double len; //!< Length of the box
