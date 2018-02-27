@@ -39,6 +39,20 @@ PointOnSphere::PointOnSphere(std::mt19937 &rng) {
 }
 
 void PointOnSphere::randomRotation(const double stddev, std::mt19937 &rng) {
+	std::normal_distribution<double> distGauss(0, stddev);
+
+	std::array<double, 3> ran, displ;
+	for (int a = 0 ; a < 3 ; ++a) {
+		ran[a] = distGauss(rng);
+	}
+	crossProd(coos, ran, displ);
+	for (int a = 0 ; a < 3 ; ++a) {
+		coos[a] += displ[a];
+	}
+	renormalize();
+}
+
+void PointOnSphere::randomRotationOld(const double stddev, std::mt19937 &rng) {
 	// Find u and v to complete an orthonormal basis
 	// See https://graphics.pixar.com/library/OrthonormalB/paper.pdf
 	std::array<double, 3> u, v;
@@ -63,15 +77,22 @@ void PointOnSphere::randomRotation(const double stddev, std::mt19937 &rng) {
 	double st = std::sin(theta);
 	double cu = st * std::cos(phi);
 	double cv = st * std::sin(phi);
-	coos[0] = cr*coos[0] + cu*u[0] + cv*u[0];
-	coos[1] = cr*coos[1] + cu*u[1] + cv*u[1];
-	coos[2] = cr*coos[2] + cu*u[2] + cv*u[2];
+	coos[0] = cr*coos[0] + cu*u[0] + cv*v[0];
+	coos[1] = cr*coos[1] + cu*u[1] + cv*v[1];
+	coos[2] = cr*coos[2] + cu*u[2] + cv*v[2];
 }
 
-// In priciple this should never be needed.
 void PointOnSphere::renormalize() {
 	double n = getNorm();
 	coos[0] /= n;
 	coos[1] /= n;
 	coos[2] /= n;
+}
+
+void PointOnSphere::crossProd(const std::array<double, 3> &x,
+				                     const std::array<double, 3> &y,
+				                     std::array<double, 3> &res) {
+	res[0] = x[1] * y[2] - x[2] * y[1];
+	res[1] = x[2] * y[0] - x[0] * y[2];
+	res[2] = x[0] * y[1] - x[1] * y[0];
 }

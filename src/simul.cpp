@@ -223,6 +223,6 @@ void Simul::print() const {
 	          << ", pot_strength=" << pot_strength << ", temperature="
 			  << temperature << ", rot_dif=" << rot_dif << ", activity="
 			  << activity << ", dt=" << dt << ", n_iters=" << n_iters
-			  << ", n_iters_th" << n_iters_th << ", skip" << skip << "\n";
+			  << ", n_iters_th=" << n_iters_th << ", skip=" << skip << "\n";
 	std::cout << std::endl;
 }

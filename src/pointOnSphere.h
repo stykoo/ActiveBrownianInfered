@@ -41,6 +41,7 @@ class PointOnSphere {
 		}
 
 		void randomRotation(const double stddev, std::mt19937 &rng);
+		void randomRotationOld(const double stddev, std::mt19937 &rng);
 		void renormalize();
 		
 		double getX() const {
@@ -72,6 +73,11 @@ class PointOnSphere {
 				return std::atan2(coos[1], coos[0]);
 			}
 		}
+
+		//! Cross product
+		static void crossProd(const std::array<double, 3> &x,
+				         const std::array<double, 3> &y,
+				         std::array<double, 3> &res);
 
 	private:
 		std::array<double, 3> coos; //!< Coordinates
