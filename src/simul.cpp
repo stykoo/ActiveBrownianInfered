@@ -58,7 +58,7 @@ Simul::Simul(int argc, char **argv) {
 		("rho,r", po::value<double>(&rho)->required(), "Density")
 		("parts,n", po::value<long>(&n_parts)->required(),
 		 "Number of particles")
-		("eps,e", po::value<double>(&pot_strength)->required(),
+		("eps,e", po::value<double>(&pot_strength)->default_value(1.0),
 		 "Strength of interparticle potential")
 		("temp,T", po::value<double>(&temperature)->required(), "Temperature")
 		("rdif,D", po::value<double>(&rot_dif)->required(),
