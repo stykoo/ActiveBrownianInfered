@@ -81,6 +81,8 @@ Simul::Simul(int argc, char **argv) {
 		 po::value<long>(&n_div_angle)->default_value(40),
 		 "Number of angular points for correlations")
 		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
+		("less", po::bool_switch(&less_obs),
+		 "Output only (r, theta) correlations")
 #ifndef NOVISU
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
@@ -176,7 +178,7 @@ void Simul::run() {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
 					dt);
-		Observables obs(len, n_parts, step_r, n_div_angle);
+		Observables obs(len, n_parts, step_r, n_div_angle, less_obs);
 		
 #ifndef NOVISU
 		// Start thread for visualization

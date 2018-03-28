@@ -35,12 +35,15 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * Initialize the vector for correlations.
  */
 Observables::Observables(const double len_, const long n_parts_,
-		                 const double step_r_, const long n_div_angle_) :
+		                 const double step_r_, const long n_div_angle_,
+						 bool less_obs_) :
 		len(len_), n_parts(n_parts_), step_r(step_r_),
-		n_div_angle(n_div_angle_),
+		n_div_angle(n_div_angle_), less_obs(less_obs_),
 		// Half of the diagonal
         n_div_r((long) std::ceil(len * std::sqrt(0.5) / step_r)),
-        n_div_tot(n_div_r * n_div_angle * n_div_angle) {
+        n_div_tot((less_obs)
+				  ? n_div_r * n_div_angle
+				  : n_div_r * n_div_angle * n_div_angle) {
 	correls.assign(n_div_tot, 0);
 }
 
@@ -70,11 +73,16 @@ void Observables::compute(const State *state) {
 				size_t b2 =
 					(size_t) std::floor(theta1 * n_div_angle / (2 * M_PI));
 				//assert(b2 < (size_t) n_div_angle);
-				size_t b3 =
-					(size_t) std::floor(theta2 * n_div_angle / (2 * M_PI));
+				size_t box = 0;
+				if (less_obs) {
+					box = b1 * n_div_angle + b2;
+				} else {
+					size_t b3 =
+						(size_t) std::floor(theta2 * n_div_angle / (2 * M_PI));
+					box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
+						  + b3;
+				}
 				//assert(b3 < (size_t) n_div_angle);
-				size_t box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
-					         + b3;
 
 				correls[box]++; // Add 1 in the right box
 			}
@@ -127,21 +135,36 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 		
 		// We chunk the data and compress it
 		// Chunking should depend on how we intend to read the data
-		long chunk_w = std::min(100l, n_div_angle); // 100 * 100 * 64 < 1M
-		hsize_t chunk_dims[3] = {1, (hsize_t) chunk_w, (hsize_t) chunk_w};
+		H5::DataSet dataset;
 		H5::DSetCreatPropList plist;
-		plist.setChunk(3, chunk_dims);
 		plist.setDeflate(6);
+		if (less_obs) {
+			long chunk_w = std::min(1000l, n_div_angle);
+			hsize_t chunk_dims[2] = {1, (hsize_t) chunk_w};
+			plist.setChunk(2, chunk_dims);
 
-		// Dimensions of the data
-		hsize_t dims[3] =
-			{(hsize_t) n_div_r, (hsize_t) n_div_angle, (hsize_t) n_div_angle};
-		dims[0] = n_div_r; dims[1] = n_div_angle; dims[2] = n_div_angle;
-		H5::DataSpace dataspace(3, dims);
-		// Write data for correlations
-		H5::DataSet dataset = file.createDataSet("correlations",
-		    		                             H5::PredType::NATIVE_LLONG,
-											     dataspace, plist);
+			// Dimensions of the data
+			hsize_t dims[2] = {(hsize_t) n_div_r, (hsize_t) n_div_angle};
+			H5::DataSpace dataspace(2, dims);
+			// Write data for correlations
+			dataset = file.createDataSet("correlations",
+					                     H5::PredType::NATIVE_LLONG,
+										 dataspace, plist);
+		} else {
+			long chunk_w = std::min(100l, n_div_angle); // 100 * 100 * 64 < 1M
+			hsize_t chunk_dims[3] = {1, (hsize_t) chunk_w, (hsize_t) chunk_w};
+			plist.setChunk(3, chunk_dims);
+
+			// Dimensions of the data
+			hsize_t dims[3] =
+				{(hsize_t) n_div_r, (hsize_t) n_div_angle,
+				 (hsize_t) n_div_angle};
+			H5::DataSpace dataspace(3, dims);
+			// Write data for correlations
+			dataset = file.createDataSet("correlations",
+					                     H5::PredType::NATIVE_LLONG,
+										 dataspace, plist);
+		}
 		dataset.write(correls.data(), H5::PredType::NATIVE_LLONG);
 
 		// Attributes for correlations

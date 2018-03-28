@@ -34,7 +34,8 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 class Observables {
 	public:
 		Observables(const double len_, const long n_parts_,
-				    const double step_r_, const long n_div_angle_);
+				    const double step_r_, const long n_div_angle_,
+					const bool less_obs_);
 		//! Compute the observables for a given state
 		void compute(const State *state);
 		//! Export to hdf5
@@ -48,6 +49,7 @@ class Observables {
 		const long n_parts; //!< Number of particles 
 		const double step_r; //!< Size of spatial division
 		const long n_div_angle; //!< Number of divisions for angle
+		const bool less_obs; //!< Only (r, theta) correlations
 		const long n_div_r; //! Number of divisions in x
 		const long n_div_tot; //! Total number of divisions
 
