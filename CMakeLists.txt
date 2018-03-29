@@ -32,13 +32,13 @@ find_package(HDF5 REQUIRED COMPONENTS C CXX)
 find_package(Boost REQUIRED COMPONENTS program_options)
 # If any of these is not found, only the novisu executable will be compiled
 find_package(Threads REQUIRED)
-find_package(SFML COMPONENTS system window graphics)
-find_package(VTK)
+find_package(SFML QUIET COMPONENTS system window graphics)
+find_package(VTK QUIET)
 include_directories(${HDF5_INCLUDE_DIRS})
-include(${VTK_USE_FILE})
 
 # Executable with visualization
 if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
+	include(${VTK_USE_FILE})
 	file(
 		GLOB
 		source_files
