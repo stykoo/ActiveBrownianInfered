@@ -30,7 +30,6 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <array>
-#include <forward_list>
 
 /*!
  * \brief Class for the boxes in which particles are.
@@ -82,11 +81,11 @@ class Boxes {
 		const double len_box; //!< Length of a box (approximately 1)
 		const long n_parts; //!< Number of particles
 		//! Neighboring boxes of a given box
-		std::vector< std::forward_list<long> > nbrs; 
+		std::vector< std::vector<long> > nbrs; 
 
 		std::vector<long> box_of_part; // Box in which each particle is
 		//!< Particles in a given box
-		std::vector< std::forward_list<long> > parts_of_box;
+		std::vector< std::vector<long> > parts_of_box;
 };
 
 /*! 
@@ -145,7 +144,7 @@ void Boxes<DIM>::update(const std::vector< std::array<double, DIM> > *pos) {
         }
 
 		box_of_part[i] = box;
-		parts_of_box[box].push_front(i);
+		parts_of_box[box].push_back(i);
 	}
 }
 
@@ -156,12 +155,12 @@ template<int DIM>
 void Boxes<DIM>::computeNbrs() {
 	for (long k = 0 ; k < n_boxes ; ++k) {
 		nbrs[k].clear();
-		nbrs[k].push_front(k);
+		nbrs[k].push_back(k);
 
 		long i = k;
 
 		for (int a = DIM-1 ; a >= 0 ; a--) {
-			std::forward_list<long> tmp = nbrs[k];
+			std::vector<long> tmp = nbrs[k];
 
 			long p = mypow(n_boxes_x, a);
 			long ia = i / p; // Coordinate along axis a
@@ -172,12 +171,11 @@ void Boxes<DIM>::computeNbrs() {
 
 			// We add the two shifts to the points we have so far
 			for (long x : tmp) {
-				nbrs[k].push_front(x + p * d1);
-				nbrs[k].push_front(x + p * d2);
+				nbrs[k].push_back(x + p * d1);
+				nbrs[k].push_back(x + p * d2);
 			}
 		}
 	}
 }
-
 
 #endif // ACTIVEBROWNIAN_BOXES_H_

@@ -124,11 +124,12 @@ void State::calcInternalForces() {
 		/*std::cout << "(" << positions[i][0] << ", " << positions[i][1]
 			      << ") -> " << k << "\n";*/
 
-		for(auto it_b = boxes.getNbrsBegin(k) ; it_b != boxes.getNbrsEnd(k) ; 
-		    ++it_b) {
-            for (auto it_j = boxes.getPartsOfBoxBegin(*it_b) ;
-                 it_j != boxes.getPartsOfBoxEnd(*it_b) && (*it_j) > i ;
-                 ++it_j) {
+		const auto it_b_b = boxes.getNbrsBegin(k);
+		const auto it_b_e = boxes.getNbrsEnd(k);
+		for(auto it_b = it_b_b ; it_b != it_b_e ; ++it_b) {
+			const auto it_j_b = boxes.getPartsOfBoxBegin(*it_b);
+			const auto it_j_e = boxes.getPartsOfBoxBegin(*it_b);
+            for (auto it_j = it_j_b ; it_j != it_j_e && (*it_j) > i ; ++it_j) {
 				double dx = positions[i][0] - positions[*it_j][0];
 				double dy = positions[i][1] - positions[*it_j][1];
 				// We want the periodized interval to be centered in 0
