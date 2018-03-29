@@ -5,16 +5,22 @@ PROJECT(ActiveBrownian)
 # Two executables, one with visualization, the other without
 set(EXECUTABLE_NAME "ActiveBrownian")
 set(EXECUTABLE_NAME_NOVISU "ActiveBrownian_novisu")
-set(EXECUTABLE_OUTPUT_PATH bin/)
 
 # Build in release mode by default
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
+if (NOT EXECUTABLE_OUTPUT_PATH)
+	if(CMAKE_BUILD_TYPE STREQUAL Release)
+		set(EXECUTABLE_OUTPUT_PATH bin/)
+	else()
+		set(EXECUTABLE_OUTPUT_PATH bin/${CMAKE_BUILD_TYPE})
+	endif()
+endif()
 
 set(CMAKE_CXX_FLAGS "-W -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+set(CMAKE_CXX_FLAGS_DEBUG "-Ofast -g -pg") # Profiling
 
 # This is not a strict requirement
 set(CMAKE_CXX_STANDARD 14)

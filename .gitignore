@@ -6,6 +6,7 @@ ActiveBrownian
 *.cmake
 *.swp
 *.swo
+*.out*
 Makefile
 CMakeCache.txt
 CMakeFiles
