@@ -139,9 +139,37 @@ void Boxes<DIM>::update(const std::vector< std::array<double, DIM> > *pos) {
     for (long i=0 ; i < n_parts ; ++i) {
         long box = 0;
         for (int a = 0 ; a < DIM ; a++) {
-			long ba = (long) std::floor((*pos)[i][a] / len_box);
+			//long ba = (long) std::floor((*pos)[i][a] / len_box);
+			// Round towards 0
+			long ba = (long) ((*pos)[i][a] / len_box);
             box += mypow(n_boxes_x, a) * ba;
         }
+
+		box_of_part[i] = box;
+		parts_of_box[box].push_back(i);
+	}
+}
+
+/*
+ * \brief Classify the particles at given positions in the boxes.
+ * 
+ * Specialization for d = 2 (removes the call to mypow).
+ * Warning: the positions should be consistent with the Boxes object!
+ *
+ * \param pos Positions of the particles
+ */
+template<>
+void Boxes<2>::update(const std::vector< std::array<double, 2> > *pos) {
+    for (long i=0 ; i < n_boxes ; ++i) {
+		parts_of_box[i].clear();
+	}
+
+    for (long i=0 ; i < n_parts ; ++i) {
+        long box = 0;
+		// Round towards 0
+		long bx = (long) ((*pos)[i][0] / len_box);
+		long by = (long) ((*pos)[i][1] / len_box);
+		box = bx + n_boxes_x * by;
 
 		box_of_part[i] = box;
 		parts_of_box[box].push_back(i);

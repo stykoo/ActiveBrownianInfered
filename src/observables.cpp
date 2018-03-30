@@ -68,17 +68,21 @@ void Observables::compute(const State *state) {
 				double theta2 = state->getAngle(i) - phi;
 				pbc(theta2, 2 * M_PI);
 
-				size_t b1 = (size_t) std::floor(dr / step_r);
+				//size_t b1 = (size_t) std::floor(dr / step_r);
+				size_t b1 = (size_t) (dr / step_r);
 				//assert(b1 < (size_t) n_div_r);
-				size_t b2 =
-					(size_t) std::floor(theta1 * n_div_angle / (2 * M_PI));
+				//size_t b2 =
+					//(size_t) std::floor(theta1 * n_div_angle / (2 * M_PI));
+				size_t b2 = (size_t) (theta1 * n_div_angle / (2 * M_PI));
 				//assert(b2 < (size_t) n_div_angle);
 				size_t box = 0;
 				if (less_obs) {
 					box = b1 * n_div_angle + b2;
 				} else {
+					//size_t b3 =
+						//(size_t) std::floor(theta2 * n_div_angle / (2 * M_PI));
 					size_t b3 =
-						(size_t) std::floor(theta2 * n_div_angle / (2 * M_PI));
+						(size_t) (theta2 * n_div_angle / (2 * M_PI));
 					box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
 						  + b3;
 				}

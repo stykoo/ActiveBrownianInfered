@@ -89,14 +89,20 @@ State::State(const double _len, const long _n_parts,
  * Evolve the system for one time step according to coupled Langevin equation.
  */
 void State::evolve() {
+	double c, s;
 	calcInternalForces();
 
 	for (long i = 0 ; i < n_parts ; ++i) {
+		// Computation of sin and cos
+#ifdef __GNUC__
+		sincos(angles[i], &s, &c);
+#else
+		s = std::sin(angles[i]);
+		c = std::cos(angles[i]);
+#endif
 		// Internal forces +  Activity + Gaussian noise
-		positions[i][0] += dt * (forces[i][0]
-		                         + activity * std::cos(angles[i]));
-		positions[i][1] += dt * (forces[i][1]
-		                         + activity * std::sin(angles[i]));
+		positions[i][0] += dt * (forces[i][0] + activity * c);
+		positions[i][1] += dt * (forces[i][1] + activity * s);
 		positions[i][0] += noiseTemp(rng);
 		positions[i][1] += noiseTemp(rng); 
 		// Rotational diffusion
