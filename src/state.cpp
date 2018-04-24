@@ -30,7 +30,6 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <chrono>
 #include <algorithm>
 #include "state.h"
-#include "mkl.h"
 
 /*!
  * \brief Constructor of State
@@ -107,14 +106,10 @@ void State::evolve() {
 #ifdef USE_MKL
 	// Activity and forces
 	vdSinCos(n_parts, angles.data(), aux_y.data(), aux_x.data());
-	cblas_dscal(n_parts, activity, aux_x.data(), 1);
-	cblas_dscal(n_parts, activity, aux_y.data(), 1);
-	vdAdd(n_parts, aux_x.data(), forces[0].data(), aux_x.data());
-	vdAdd(n_parts, aux_y.data(), forces[1].data(), aux_y.data());
-	cblas_dscal(n_parts, dt, aux_x.data(), 1);
-	cblas_dscal(n_parts, dt, aux_y.data(), 1);
-	vdAdd(n_parts, positions[0].data(), aux_x.data(), positions[0].data());
-	vdAdd(n_parts, positions[1].data(), aux_y.data(), positions[1].data());
+	cblas_daxpy(n_parts, activity, aux_x.data(), 1, forces[0].data(), 1);
+	cblas_daxpy(n_parts, activity, aux_y.data(), 1, forces[1].data(), 1);
+	cblas_daxpy(n_parts, dt, forces[0].data(), 1, positions[0].data(), 1);
+	cblas_daxpy(n_parts, dt, forces[1].data(), 1, positions[1].data(), 1);
 	// Diffusion and rotational diffusion
 	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
 			      aux_x.data(), 0, stddev_temp);
@@ -196,9 +191,24 @@ void State::calcInternalForces() {
  * \brief Enforce periodic boundary conditions
  */
 void State::enforcePBC() {
+#ifdef USE_MKL
+	pbcMKL(positions[0], len, aux_x, n_parts);
+	pbcMKL(positions[1], len, aux_y, n_parts);
+	pbcMKL(angles, 2.0 * M_PI, aux_angle, n_parts);
+#else
 	for (long i = 0 ; i < n_parts ; ++i) {
 		pbc(positions[0][i], len);
 		pbc(positions[1][i], len);
 		pbc(angles[i], 2.0 * M_PI);
 	}
+#endif
 }
+
+#ifdef USE_MKL
+void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
+	        const long N) {
+	cblas_daxpby(N, 1.0 / L, v.data(), 1, 0.0, aux.data(), 1);
+	vdFloor(N, aux.data(), aux.data());
+	cblas_daxpy(N, -L, aux.data(), 1, v.data(), 1);
+}	
+#endif

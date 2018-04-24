@@ -34,6 +34,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include "boxes.h"
 
 #ifdef USE_MKL
+	#include "mkl.h"
 	#include "mkl_vsl.h"
 #else
 	#include <random>
@@ -116,13 +117,18 @@ template<typename T>
 void pbc(T &x, const T L){
 	x -= L * std::floor(x / L);
 }
-template<>
+/*template<>
 void pbc<double>(double &x, const double L) {
 	// Trick to avoid floor
 	double a = x / L;
 	long i = (long) a;
 	x -= L * (i - (i > a));
-}
+}*/
+
+#ifdef USE_MKL
+void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
+	        const long N);
+#endif
 
 /*! 
  * \brief Periodic boundary conditions on a segment (symmetric)
