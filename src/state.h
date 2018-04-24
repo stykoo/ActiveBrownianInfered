@@ -89,7 +89,7 @@ class State {
 #ifdef USE_MKL
 		double stddev_temp, stddev_rot;
 		VSLStreamStatePtr stream;
-		std::vector<double> ran_num_x, ran_num_y, ran_num_angle;
+		std::vector<double> aux_x, aux_y, aux_angle;
 #else
 		std::mt19937 rng; //!< Random number generator
 		//! Gaussian noise for temperature

@@ -30,6 +30,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <chrono>
 #include <algorithm>
 #include "state.h"
+#include "mkl.h"
 
 /*!
  * \brief Constructor of State
@@ -69,9 +70,9 @@ State::State(const double _len, const long _n_parts,
 	forces[1].assign(n_parts, 0);
 
 #ifdef USE_MKL
-	ran_num_x.resize(n_parts);
-	ran_num_y.resize(n_parts);
-	ran_num_angle.resize(n_parts);
+	aux_x.resize(n_parts);
+	aux_y.resize(n_parts);
+	aux_angle.resize(n_parts);
 
 	vslNewStream(&stream, VSL_BRNG_SFMT19937,
 			std::chrono::system_clock::now().time_since_epoch().count());
@@ -80,7 +81,7 @@ State::State(const double _len, const long _n_parts,
 	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
 			     positions[1].data(), 0, len);
 	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
-			     ran_num_angle.data(), 0, 2.0 * M_PI);
+			     angles.data(), 0, 2.0 * M_PI);
 #else
     std::uniform_real_distribution<double> rndPos(0, len);
     std::uniform_real_distribution<double> rndAngle(0, 2.0 * M_PI);
@@ -101,39 +102,48 @@ State::State(const double _len, const long _n_parts,
  * Evolve the system for one time step according to coupled Langevin equation.
  */
 void State::evolve() {
-	double c, s;
 	calcInternalForces();
-#ifdef USE_MKL
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
-			      ran_num_x.data(), 0, stddev_temp);
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
-			      ran_num_y.data(), 0, stddev_temp);
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
-			      ran_num_angle.data(), 0, stddev_rot);
-#endif
 
+#ifdef USE_MKL
+	// Activity and forces
+	vdSinCos(n_parts, angles.data(), aux_y.data(), aux_x.data());
+	cblas_dscal(n_parts, activity, aux_x.data(), 1);
+	cblas_dscal(n_parts, activity, aux_y.data(), 1);
+	vdAdd(n_parts, aux_x.data(), forces[0].data(), aux_x.data());
+	vdAdd(n_parts, aux_y.data(), forces[1].data(), aux_y.data());
+	cblas_dscal(n_parts, dt, aux_x.data(), 1);
+	cblas_dscal(n_parts, dt, aux_y.data(), 1);
+	vdAdd(n_parts, positions[0].data(), aux_x.data(), positions[0].data());
+	vdAdd(n_parts, positions[1].data(), aux_y.data(), positions[1].data());
+	// Diffusion and rotational diffusion
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+			      aux_x.data(), 0, stddev_temp);
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+			      aux_y.data(), 0, stddev_temp);
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+			      aux_angle.data(), 0, stddev_rot);
+	vdAdd(n_parts, positions[0].data(), aux_x.data(), positions[0].data());
+	vdAdd(n_parts, positions[1].data(), aux_y.data(), positions[1].data());
+	vdAdd(n_parts, angles.data(), aux_x.data(), angles.data());
+#else
+	double c, s;
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// Computation of sin and cos
-#ifdef __GNUC__
+	#ifdef __GNUC__
 		sincos(angles[i], &s, &c);
-#else
+	#else
 		s = std::sin(angles[i]);
 		c = std::cos(angles[i]);
-#endif
+	#endif
 		// Internal forces +  Activity + Gaussian noise
 		positions[0][i] += dt * (forces[0][i] + activity * c);
 		positions[1][i] += dt * (forces[1][i] + activity * s);
 		// Diffusion and rotational diffusion
-#ifdef USE_MKL
-		positions[0][i] += ran_num_x[i];
-		positions[1][i] += ran_num_y[i];
-		angles[i] += ran_num_angle[i];
-#else
 		positions[0][i] += noiseTemp(rng);
 		positions[1][i] += noiseTemp(rng); 
 		angles[i] += noiseAngle(rng);
-#endif
 	}
+#endif
 
 	enforcePBC();
 }
