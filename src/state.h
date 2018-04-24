@@ -61,11 +61,11 @@ class State {
 
 		//! Get the x coordinate of the position of particle i  
 		double getPosX(size_t i) const {
-			return positions[i][0];
+			return positions[0][i];
 		}
 		//! Get the y coordinate of the position of particle i  
 		double getPosY(size_t i) const {
-			return positions[i][1];
+			return positions[1][i];
 		}
 
 		//! Get angle of particle i
@@ -99,9 +99,9 @@ class State {
 #endif
 
 		//! Positions of the particles
-		std::vector< std::array<double, 2> > positions;
+		std::array<std::vector<double>, 2> positions;
 		std::vector<double> angles; //<! Angles
-		std::vector<double> forces;  //!< Internal forces
+		std::array<std::vector<double>, 2> forces;  //!< Internal forces
 };
 
 /*! 

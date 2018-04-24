@@ -52,15 +52,15 @@ class State3d {
 
 		//! Get the x coordinate of the position of particle i  
 		double getPosX(size_t i) const {
-			return positions[i][0];
+			return positions[0][i];
 		}
 		//! Get the y coordinate of the position of particle i  
 		double getPosY(size_t i) const {
-			return positions[i][1];
+			return positions[1][i];
 		}
 		//! Get the z coordinate of the position of particle i  
 		double getPosZ(size_t i) const {
-			return positions[i][2];
+			return positions[2][i];
 		}
 
 		//! Get orientation of particle i
@@ -88,9 +88,9 @@ class State3d {
 		Boxes<3> boxes; //!< Boxes for algorithm
 
 		//! Positions of the particles
-		std::vector< std::array<double, 3> > positions;
+		std::array<std::vector<double>, 3> positions;
 		std::vector<PointOnSphere> orients; //<! Orientations
-		std::vector< std::array<double, 3> > forces;  //!< Internal forces
+		std::array<std::vector<double>, 3> forces;  //!< Internal forces
 };
 
 #endif // ACTIVEBROWNIAN_STATE3D_H_

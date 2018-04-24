@@ -43,7 +43,7 @@ class Boxes {
 	public:
 		Boxes(const double len, const long n_parts);
 		//! Update according to the positions
-		void update(const std::vector< std::array<double, DIM> > *pos);
+		void update(const std::array< std::vector<double>, DIM> &pos);
 
 		//! Return the number of boxes
 		long getNBoxes() const {
@@ -115,7 +115,7 @@ Boxes<DIM>::Boxes(const double len, const long n_parts) :
  * \param pos Positions of the particles
  */
 template<int DIM>
-void Boxes<DIM>::update(const std::vector< std::array<double, DIM> > *pos) {
+void Boxes<DIM>::update(const std::array<std::vector<double>, DIM> &pos) {
     for (long i=0 ; i < n_boxes ; ++i) {
 		parts_of_box[i].clear();
 	}
@@ -125,11 +125,10 @@ void Boxes<DIM>::update(const std::vector< std::array<double, DIM> > *pos) {
         for (int a = 0 ; a < DIM ; a++) {
 			//long ba = (long) std::floor((*pos)[i][a] / len_box);
 			// Round towards 0
-			long ba = (long) ((*pos)[i][a] / len_box);
+			long ba = (long) (pos[a][i] / len_box);
             box += mypow(n_boxes_x, a) * ba;
         }
 
-		// box_of_part[i] = box;
 		parts_of_box[box].push_back(i);
 	}
 }
@@ -143,7 +142,7 @@ void Boxes<DIM>::update(const std::vector< std::array<double, DIM> > *pos) {
  * \param pos Positions of the particles
  */
 template<>
-void Boxes<2>::update(const std::vector< std::array<double, 2> > *pos) {
+void Boxes<2>::update(const std::array<std::vector<double>, 2> &pos) {
     for (long i=0 ; i < n_boxes ; ++i) {
 		parts_of_box[i].clear();
 	}
@@ -151,11 +150,10 @@ void Boxes<2>::update(const std::vector< std::array<double, 2> > *pos) {
     for (long i=0 ; i < n_parts ; ++i) {
         long box = 0;
 		// Round towards 0
-		long bx = (long) ((*pos)[i][0] / len_box);
-		long by = (long) ((*pos)[i][1] / len_box);
+		long bx = (long) (pos[0][i] / len_box);
+		long by = (long) (pos[1][i] / len_box);
 		box = bx + n_boxes_x * by;
 
-		//box_of_part[i] = box;
 		parts_of_box[box].push_back(i);
 	}
 }

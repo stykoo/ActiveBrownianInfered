@@ -62,40 +62,37 @@ State::State(const double _len, const long _n_parts,
 	noiseAngle(0.0, std::sqrt(2.0 * _rot_dif * dt))
 #endif
 {
-	positions.resize(n_parts);
+	positions[0].resize(n_parts);
+	positions[1].resize(n_parts);
 	angles.resize(n_parts);
-	forces.resize(2 * n_parts);
+	forces[0].assign(n_parts, 0);
+	forces[1].assign(n_parts, 0);
 
 #ifdef USE_MKL
-	vslNewStream(&stream, VSL_BRNG_SFMT19937,
-			std::chrono::system_clock::now().time_since_epoch().count());
 	ran_num_x.resize(n_parts);
 	ran_num_y.resize(n_parts);
 	ran_num_angle.resize(n_parts);
-	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts, ran_num_x.data(),
-			     0, len);
-	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts, ran_num_y.data(),
-			     0, len);
+
+	vslNewStream(&stream, VSL_BRNG_SFMT19937,
+			std::chrono::system_clock::now().time_since_epoch().count());
+	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
+			     positions[0].data(), 0, len);
+	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
+			     positions[1].data(), 0, len);
 	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
 			     ran_num_angle.data(), 0, 2.0 * M_PI);
 #else
     std::uniform_real_distribution<double> rndPos(0, len);
     std::uniform_real_distribution<double> rndAngle(0, 2.0 * M_PI);
-#endif
 
 	for (long i = 0 ; i < n_parts ; ++i) {
-#ifdef USE_MKL
-		positions[i][0] = ran_num_x[i];
-		positions[i][1] = ran_num_y[i];
-		angles[i] = ran_num_angle[i];
-#else
-		positions[i][0] = rndPos(rng);
-		positions[i][1] = rndPos(rng);
+		positions[0][i] = rndPos(rng);
+		positions[1][i] = rndPos(rng);
 		angles[i] = rndAngle(rng);
-#endif
 		forces[i] = 0;
 		forces[n_parts + i] = 0;
 	}
+#endif
 }
 
 /*!
@@ -124,16 +121,16 @@ void State::evolve() {
 		c = std::cos(angles[i]);
 #endif
 		// Internal forces +  Activity + Gaussian noise
-		positions[i][0] += dt * (forces[i] + activity * c);
-		positions[i][1] += dt * (forces[n_parts + i] + activity * s);
+		positions[0][i] += dt * (forces[0][i] + activity * c);
+		positions[1][i] += dt * (forces[1][i] + activity * s);
 		// Diffusion and rotational diffusion
 #ifdef USE_MKL
-		positions[i][0] += ran_num_x[i];
-		positions[i][1] += ran_num_y[i];
+		positions[0][i] += ran_num_x[i];
+		positions[1][i] += ran_num_y[i];
 		angles[i] += ran_num_angle[i];
 #else
-		positions[i][0] += noiseTemp(rng);
-		positions[i][1] += noiseTemp(rng); 
+		positions[0][i] += noiseTemp(rng);
+		positions[1][i] += noiseTemp(rng); 
 		angles[i] += noiseAngle(rng);
 #endif
 	}
@@ -146,12 +143,13 @@ void State::evolve() {
  * Implement harmonic spheres.
  */
 void State::calcInternalForces() {
-    for (long i = 0 ; i < 2 * n_parts ; ++i) {
-		forces[i] = 0;
+    for (long i = 0 ; i < n_parts ; ++i) {
+		forces[0][i] = 0;
+		forces[1][i] = 0;
     }
 
 	// Recompute the boxes
-	boxes.update(&positions);
+	boxes.update(positions);
 	const long n_boxes = boxes.getNBoxes();
 	const std::vector< std::vector<long> > * nbrs_pos = boxes.getNbrsPos();
 	const std::vector< std::vector<long> > * parts_of_box = \
@@ -161,8 +159,8 @@ void State::calcInternalForces() {
 		for (long b2 : (*nbrs_pos)[b1]) {
 			for (long i : (*parts_of_box)[b1]) {
 				for (long j : (*parts_of_box)[b2]) {
-					double dx = positions[i][0] - positions[j][0];
-					double dy = positions[i][1] - positions[j][1];
+					double dx = positions[0][i] - positions[0][j];
+					double dy = positions[1][i] - positions[1][j];
 					// We want the periodized interval to be centered in 0
 					pbcSym(dx, len);
 					pbcSym(dy, len);
@@ -173,10 +171,10 @@ void State::calcInternalForces() {
 						double fx = u * dx;
 						double fy = u * dy;
 
-						forces[i] += fx;
-						forces[j] -= fx;
-						forces[n_parts + i] += fy;
-						forces[n_parts + j] -= fy;
+						forces[0][i] += fx;
+						forces[0][j] -= fx;
+						forces[1][i] += fy;
+						forces[1][j] -= fy;
 					}
 				}
 			}
@@ -184,44 +182,13 @@ void State::calcInternalForces() {
 	}
 }
 
-/*
-void State::calcInternalForces() {
-    for (long i = 0 ; i < n_parts ; ++i) {
-		forces[i][0] = 0;
-		forces[i][1] = 0;
-    }
-
-    for (long i = 0 ; i < n_parts ; ++i) {
-        for (long j = i + 1 ; j < n_parts ; ++j) {
-			double dx = positions[i][0] - positions[j][0];
-			double dy = positions[i][1] - positions[j][1];
-			// We want the periodized interval to be centered in 0
-			pbcSym(dx, len);
-			pbcSym(dy, len);
-			double dr2 = dx * dx + dy * dy;
-
-            if(dr2 < 1. && dr2 > 0.) {
-				double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
-				double fx = u * dx;
-				double fy = u * dy;
-
-				forces[i][0] += fx;
-				forces[j][0] -= fx;
-				forces[i][1] += fy;
-				forces[j][1] -= fy;
-			}
-        }
-    }
-}
-*/
-
 /* 
  * \brief Enforce periodic boundary conditions
  */
 void State::enforcePBC() {
 	for (long i = 0 ; i < n_parts ; ++i) {
-		pbc(positions[i][0], len);
-		pbc(positions[i][1], len);
+		pbc(positions[0][i], len);
+		pbc(positions[1][i], len);
 		pbc(angles[i], 2.0 * M_PI);
 	}
 }

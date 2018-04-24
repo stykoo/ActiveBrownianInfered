@@ -59,35 +59,27 @@ State3d::State3d(const double _len, const long _n_parts,
 	stddevOrient(std::sqrt(2.0 * _rot_dif * dt)),
 	boxes(_len, _n_parts)
 {
-	positions.resize(n_parts);
+	positions[0].resize(n_parts);
+	positions[1].resize(n_parts);
+	positions[2].resize(n_parts);
 	// Automatic random intialization
 	for (long i = 0 ; i < n_parts ; ++i) {
 		orients.emplace_back(rng);
 	}
-	forces.resize(n_parts);
+	forces[0].resize(n_parts);
+	forces[1].resize(n_parts);
+	forces[2].resize(n_parts);
 
     std::uniform_real_distribution<double> rndPos(0, len);
 
 	for (long i = 0 ; i < n_parts ; ++i) {
-		positions[i][0] = rndPos(rng);
-		positions[i][1] = rndPos(rng);
-		positions[i][2] = rndPos(rng);
-		forces[i][0] = 0;
-		forces[i][1] = 0;
-		forces[i][2] = 0;
+		positions[0][i] = rndPos(rng);
+		positions[1][i] = rndPos(rng);
+		positions[2][i] = rndPos(rng);
+		forces[0][i] = 0;
+		forces[1][i] = 0;
+		forces[2][i] = 0;
 	}
-
-	/* std::cout << boxes.getNBoxes() << std::endl;
-	for (long i = 0 ; i < boxes.getNBoxes() ; ++i) {
-		std::cout << "[" << i << "] :";
-		for (auto it = boxes.getNbrsBegin(i) ; it != boxes.getNbrsEnd(i) ;
-		     ++it) {
-			std::cout << " " << *it;
-		}
-		std::cout << std::endl;
-	} 
-	std::cout << _temperature << " " << stddevOrient << " " << activity
-		<< std::endl; */
 }
 
 /*!
@@ -100,12 +92,12 @@ void State3d::evolve() {
 
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// Internal forces +  Activity + Gaussian noise
-		positions[i][0] += dt * (forces[i][0] + activity * orients[i].getX());
-		positions[i][1] += dt * (forces[i][1] + activity * orients[i].getY());
-		positions[i][2] += dt * (forces[i][2] + activity * orients[i].getZ());
-		positions[i][0] += noiseTemp(rng);
-		positions[i][1] += noiseTemp(rng); 
-		positions[i][2] += noiseTemp(rng); 
+		positions[0][i] += dt * (forces[0][i] + activity * orients[i].getX());
+		positions[1][i] += dt * (forces[1][i] + activity * orients[i].getY());
+		positions[2][i] += dt * (forces[2][i] + activity * orients[i].getZ());
+		positions[0][i] += noiseTemp(rng);
+		positions[1][i] += noiseTemp(rng); 
+		positions[2][i] += noiseTemp(rng); 
 		// Rotational diffusion
 		orients[i].randomRotation(stddevOrient, rng);
 	}
@@ -119,13 +111,13 @@ void State3d::evolve() {
  */
 void State3d::calcInternalForces() {
     for (long i = 0 ; i < n_parts ; ++i) {
-		forces[i][0] = 0;
-		forces[i][1] = 0;
-		forces[i][2] = 0;
+		forces[0][i] = 0;
+		forces[1][i] = 0;
+		forces[2][i] = 0;
     }
 
 	// Recompute the boxes
-	boxes.update(&positions);
+	boxes.update(positions);
 	const long n_boxes = boxes.getNBoxes();
 	const std::vector< std::vector<long> > * nbrs_pos = boxes.getNbrsPos();
 	const std::vector< std::vector<long> > * parts_of_box = \
@@ -135,9 +127,9 @@ void State3d::calcInternalForces() {
 		for (long b2 : (*nbrs_pos)[b1]) {
 			for (long i : (*parts_of_box)[b1]) {
 				for (long j : (*parts_of_box)[b2]) {
-					double dx = positions[i][0] - positions[j][0];
-					double dy = positions[i][1] - positions[j][1];
-					double dz = positions[i][2] - positions[j][2];
+					double dx = positions[0][i] - positions[0][j];
+					double dy = positions[1][i] - positions[1][j];
+					double dz = positions[2][i] - positions[2][j];
 					// We want the periodized interval to be centered in 0
 					pbcSym(dx, len);
 					pbcSym(dy, len);
@@ -150,12 +142,12 @@ void State3d::calcInternalForces() {
 						double fy = u * dy;
 						double fz = u * dz;
 
-						forces[i][0] += fx;
-						forces[j][0] -= fx;
-						forces[i][1] += fy;
-						forces[j][1] -= fy;
-						forces[i][2] += fz;
-						forces[j][2] -= fz;
+						forces[0][i] += fx;
+						forces[0][j] -= fx;
+						forces[1][i] += fy;
+						forces[1][j] -= fy;
+						forces[2][i] += fz;
+						forces[2][j] -= fz;
 					}
 				}
 			}
@@ -168,8 +160,8 @@ void State3d::calcInternalForces() {
  */
 void State3d::enforcePBC() {
 	for (long i = 0 ; i < n_parts ; ++i) {
-		pbc(positions[i][0], len);
-		pbc(positions[i][1], len);
-		pbc(positions[i][2], len);
+		pbc(positions[0][i], len);
+		pbc(positions[1][i], len);
+		pbc(positions[2][i], len);
 	}
 }
