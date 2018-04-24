@@ -29,12 +29,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <chrono>
 #include <algorithm>
-// #include <iostream>
 #include "state.h"
-
-#pragma omp declare reduction(vec_float_plus : std::vector<double> : \
-                              std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<double>())) \
-                    initializer(omp_priv = omp_orig)
 
 /*!
  * \brief Constructor of State
@@ -54,38 +49,53 @@ State::State(const double _len, const long _n_parts,
 			 const double _rot_dif, const double _activity, const double _dt) :
 	len(_len), n_parts(_n_parts), pot_strength(_pot_strength),
 	activity(_activity), dt(_dt),
+	boxes(_len, _n_parts),
+#ifdef USE_MKL
+	stddev_temp(std::sqrt(2.0 * _temperature * dt)),
+	stddev_rot(std::sqrt(2.0 * _rot_dif * dt))
+#else
 	// We seed the RNG with the current time
 	rng(std::chrono::system_clock::now().time_since_epoch().count()),
 	// Gaussian noise from the temperature
 	noiseTemp(0.0, std::sqrt(2.0 * _temperature * dt)),
 	// Gaussian noise from the rotational diffusivity
-	noiseAngle(0.0, std::sqrt(2.0 * _rot_dif * dt)),
-	boxes(_len, _n_parts)
+	noiseAngle(0.0, std::sqrt(2.0 * _rot_dif * dt))
+#endif
 {
 	positions.resize(n_parts);
 	angles.resize(n_parts);
 	forces.resize(2 * n_parts);
 
+#ifdef USE_MKL
+	vslNewStream(&stream, VSL_BRNG_SFMT19937,
+			std::chrono::system_clock::now().time_since_epoch().count());
+	ran_num_x.resize(n_parts);
+	ran_num_y.resize(n_parts);
+	ran_num_angle.resize(n_parts);
+	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts, ran_num_x.data(),
+			     0, len);
+	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts, ran_num_y.data(),
+			     0, len);
+	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
+			     ran_num_angle.data(), 0, 2.0 * M_PI);
+#else
     std::uniform_real_distribution<double> rndPos(0, len);
     std::uniform_real_distribution<double> rndAngle(0, 2.0 * M_PI);
+#endif
 
 	for (long i = 0 ; i < n_parts ; ++i) {
+#ifdef USE_MKL
+		positions[i][0] = ran_num_x[i];
+		positions[i][1] = ran_num_y[i];
+		angles[i] = ran_num_angle[i];
+#else
 		positions[i][0] = rndPos(rng);
 		positions[i][1] = rndPos(rng);
 		angles[i] = rndAngle(rng);
+#endif
 		forces[i] = 0;
 		forces[n_parts + i] = 0;
 	}
-
-	/* std::cout << boxes.getNBoxes() << std::endl;
-	for (long i = 0 ; i < boxes.getNBoxes() ; ++i) {
-		std::cout << "[" << i << "] :";
-		for (auto it = boxes.getNbrsBegin(i) ; it != boxes.getNbrsEnd(i) ;
-		     ++it) {
-			std::cout << " " << *it;
-		}
-		std::cout << std::endl;
-	} */
 }
 
 /*!
@@ -96,6 +106,14 @@ State::State(const double _len, const long _n_parts,
 void State::evolve() {
 	double c, s;
 	calcInternalForces();
+#ifdef USE_MKL
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+			      ran_num_x.data(), 0, stddev_temp);
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+			      ran_num_y.data(), 0, stddev_temp);
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+			      ran_num_angle.data(), 0, stddev_rot);
+#endif
 
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// Computation of sin and cos
@@ -108,10 +126,16 @@ void State::evolve() {
 		// Internal forces +  Activity + Gaussian noise
 		positions[i][0] += dt * (forces[i] + activity * c);
 		positions[i][1] += dt * (forces[n_parts + i] + activity * s);
+		// Diffusion and rotational diffusion
+#ifdef USE_MKL
+		positions[i][0] += ran_num_x[i];
+		positions[i][1] += ran_num_y[i];
+		angles[i] += ran_num_angle[i];
+#else
 		positions[i][0] += noiseTemp(rng);
 		positions[i][1] += noiseTemp(rng); 
-		// Rotational diffusion
 		angles[i] += noiseAngle(rng);
+#endif
 	}
 
 	enforcePBC();

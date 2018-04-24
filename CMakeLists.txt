@@ -30,6 +30,9 @@ find_package(SFML QUIET COMPONENTS system window graphics)
 find_package(VTK QUIET)
 include_directories(${HDF5_INCLUDE_DIRS})
 
+find_package(MKL)
+include_directories(${MKL_INCLUDE_DIRS})
+
 # Executable with visualization
 if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
 	include(${VTK_USE_FILE})
@@ -44,6 +47,11 @@ if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
 		${EXECUTABLE_NAME}
 		${source_files}
 	)
+
+	if(MKL_FOUND)
+		target_compile_definitions(${EXECUTABLE_NAME} PRIVATE USE_MKL)
+    	target_link_libraries(${EXECUTABLE_NAME} -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group pthread dl)
+	endif()
 
 	# Linking
 	target_link_libraries(
@@ -75,6 +83,11 @@ add_executable(
 
 # defines NOVISU
 target_compile_definitions(${EXECUTABLE_NAME_NOVISU} PRIVATE NOVISU)
+if(MKL_FOUND)
+	target_compile_definitions(${EXECUTABLE_NAME_NOVISU} PRIVATE USE_MKL)
+	target_link_libraries(${EXECUTABLE_NAME_NOVISU} -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group pthread dl)
+endif()
+
 
 target_link_libraries(
 	${EXECUTABLE_NAME_NOVISU}

@@ -31,8 +31,14 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <array>
-#include <random>
 #include "boxes.h"
+
+#ifdef USE_MKL
+	#include "mkl_vsl.h"
+#else
+	#include <random>
+#endif
+
 
 /*!
  * \brief Class for the state of the system
@@ -46,6 +52,11 @@ class State {
 		State(const double _len, const long _n_parts,
 		      const double _pot_strength, const double _temperature,
 			  const double _rot_dif, const double _activity, const double _dt);
+		~State() {
+#ifdef USE_MKL
+			vslDeleteStream(&stream);
+#endif
+		}
 		void evolve(); //!< Do one time step
 
 		//! Get the x coordinate of the position of particle i  
@@ -73,13 +84,19 @@ class State {
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
 
+		Boxes<2> boxes; //!< Boxes for algorithm
+
+#ifdef USE_MKL
+		double stddev_temp, stddev_rot;
+		VSLStreamStatePtr stream;
+		std::vector<double> ran_num_x, ran_num_y, ran_num_angle;
+#else
 		std::mt19937 rng; //!< Random number generator
 		//! Gaussian noise for temperature
 		std::normal_distribution<double> noiseTemp;
 		//! Gaussian noise for angle
 		std::normal_distribution<double> noiseAngle;
-
-		Boxes<2> boxes; //!< Boxes for algorithm
+#endif
 
 		//! Positions of the particles
 		std::vector< std::array<double, 2> > positions;
