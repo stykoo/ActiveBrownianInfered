@@ -28,8 +28,13 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 #include <chrono>
+#include <algorithm>
 // #include <iostream>
 #include "state.h"
+
+#pragma omp declare reduction(vec_float_plus : std::vector<double> : \
+                              std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<double>())) \
+                    initializer(omp_priv = omp_orig)
 
 /*!
  * \brief Constructor of State
@@ -59,7 +64,7 @@ State::State(const double _len, const long _n_parts,
 {
 	positions.resize(n_parts);
 	angles.resize(n_parts);
-	forces.resize(n_parts);
+	forces.resize(2 * n_parts);
 
     std::uniform_real_distribution<double> rndPos(0, len);
     std::uniform_real_distribution<double> rndAngle(0, 2.0 * M_PI);
@@ -68,8 +73,8 @@ State::State(const double _len, const long _n_parts,
 		positions[i][0] = rndPos(rng);
 		positions[i][1] = rndPos(rng);
 		angles[i] = rndAngle(rng);
-		forces[i][0] = 0;
-		forces[i][1] = 0;
+		forces[i] = 0;
+		forces[n_parts + i] = 0;
 	}
 
 	/* std::cout << boxes.getNBoxes() << std::endl;
@@ -101,8 +106,8 @@ void State::evolve() {
 		c = std::cos(angles[i]);
 #endif
 		// Internal forces +  Activity + Gaussian noise
-		positions[i][0] += dt * (forces[i][0] + activity * c);
-		positions[i][1] += dt * (forces[i][1] + activity * s);
+		positions[i][0] += dt * (forces[i] + activity * c);
+		positions[i][1] += dt * (forces[n_parts + i] + activity * s);
 		positions[i][0] += noiseTemp(rng);
 		positions[i][1] += noiseTemp(rng); 
 		// Rotational diffusion
@@ -117,46 +122,42 @@ void State::evolve() {
  * Implement harmonic spheres.
  */
 void State::calcInternalForces() {
-    for (long i = 0 ; i < n_parts ; ++i) {
-		forces[i][0] = 0;
-		forces[i][1] = 0;
+    for (long i = 0 ; i < 2 * n_parts ; ++i) {
+		forces[i] = 0;
     }
 
 	// Recompute the boxes
 	boxes.update(&positions);
+	const long n_boxes = boxes.getNBoxes();
+	const std::vector< std::vector<long> > * nbrs_pos = boxes.getNbrsPos();
+	const std::vector< std::vector<long> > * parts_of_box = \
+		boxes.getPartsOfBox();
 
-    for (long i = 0 ; i < n_parts ; ++i) {
-		long k = boxes.getBoxOfPart(i);
-		/*std::cout << "(" << positions[i][0] << ", " << positions[i][1]
-			      << ") -> " << k << "\n";*/
+	for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
+		for (long b2 : (*nbrs_pos)[b1]) {
+			for (long i : (*parts_of_box)[b1]) {
+				for (long j : (*parts_of_box)[b2]) {
+					double dx = positions[i][0] - positions[j][0];
+					double dy = positions[i][1] - positions[j][1];
+					// We want the periodized interval to be centered in 0
+					pbcSym(dx, len);
+					pbcSym(dy, len);
+					double dr2 = dx * dx + dy * dy;
 
-		const auto it_b_b = boxes.getNbrsBegin(k);
-		const auto it_b_e = boxes.getNbrsEnd(k);
-		for(auto it_b = it_b_b ; it_b != it_b_e ; ++it_b) {
-			const auto it_j_b = boxes.getPartsOfBoxBegin(*it_b);
-			const auto it_j_e = boxes.getPartsOfBoxEnd(*it_b);
-			// We use the fact that the elements in a box are ordered
-            for (auto it_j = it_j_b ; it_j != it_j_e && (*it_j) < i ; ++it_j) {
-				double dx = positions[i][0] - positions[*it_j][0];
-				double dy = positions[i][1] - positions[*it_j][1];
-				// We want the periodized interval to be centered in 0
-				pbcSym(dx, len);
-				pbcSym(dy, len);
-				double dr2 = dx * dx + dy * dy;
+					if(dr2 * (1. - dr2) > 0.) {
+						double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
+						double fx = u * dx;
+						double fy = u * dy;
 
-				if(dr2 < 1. && dr2 > 0.) {
-					double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
-					double fx = u * dx;
-					double fy = u * dy;
-
-					forces[i][0] += fx;
-					forces[*it_j][0] -= fx;
-					forces[i][1] += fy;
-					forces[*it_j][1] -= fy;
+						forces[i] += fx;
+						forces[j] -= fx;
+						forces[n_parts + i] += fy;
+						forces[n_parts + j] -= fy;
+					}
 				}
 			}
 		}
-    }
+	}
 }
 
 /*

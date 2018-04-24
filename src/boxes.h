@@ -50,40 +50,25 @@ class Boxes {
 			return n_boxes;
 		}
 
-		//!< Return an iterator to the begin of the neighbors' list of box i.
-		auto getNbrsBegin(const size_t i) const {
-			return nbrs[i].cbegin();
-		}
-		//!< Return an iterator to the begin of the neighbors' list of box i.
-		auto getNbrsEnd(const size_t i) const {
-			return nbrs[i].cend();
+		const std::vector< std::vector<long> > * getNbrsPos() const {
+			return &nbrs_pos;
 		}
 
-		//!< Return the box in which particle i is.
-		long getBoxOfPart(const size_t i) const {
-			return box_of_part[i];
-		}
-
-		//!< Return an iterator to the begin of the list of particles in box i.
-		auto getPartsOfBoxBegin(const size_t i) const {
-			return parts_of_box[i].cbegin();
-		}
-		//!< Return an iterator to the end of the list of particles in box i.
-		auto getPartsOfBoxEnd(const size_t i) const {
-			return parts_of_box[i].cend();
+		const std::vector< std::vector<long> > * getPartsOfBox() const {
+			return &parts_of_box;
 		}
 
 	private:
-		void computeNbrs(); //!< Compute the neighboring boxes of a given box
+		//!< Compute the neighboring boxes of a given box
+		void computeNbrsPos();
 
 		const long n_boxes_x; //!< Number of boxes in one direction
 		const long n_boxes; //!< Total number of boxes
 		const double len_box; //!< Length of a box (approximately 1)
 		const long n_parts; //!< Number of particles
-		//! Neighboring boxes of a given box
-		std::vector< std::vector<long> > nbrs; 
+		//! Neighboring boxes of a given box along the 'positive' directions
+		std::vector< std::vector<long> > nbrs_pos; 
 
-		std::vector<long> box_of_part; // Box in which each particle is
 		//!< Particles in a given box
 		std::vector< std::vector<long> > parts_of_box;
 };
@@ -117,9 +102,8 @@ template<int DIM>
 Boxes<DIM>::Boxes(const double len, const long n_parts) :
 		n_boxes_x(std::floor(len)), n_boxes(mypow(n_boxes_x, DIM)),
 		len_box(len / n_boxes_x), n_parts(n_parts) {
-	nbrs.resize(n_boxes);
-	computeNbrs();
-	box_of_part.resize(n_parts);
+	nbrs_pos.resize(n_boxes);
+	computeNbrsPos();
 	parts_of_box.resize(n_boxes);
 }
 
@@ -145,7 +129,7 @@ void Boxes<DIM>::update(const std::vector< std::array<double, DIM> > *pos) {
             box += mypow(n_boxes_x, a) * ba;
         }
 
-		box_of_part[i] = box;
+		// box_of_part[i] = box;
 		parts_of_box[box].push_back(i);
 	}
 }
@@ -171,36 +155,35 @@ void Boxes<2>::update(const std::vector< std::array<double, 2> > *pos) {
 		long by = (long) ((*pos)[i][1] / len_box);
 		box = bx + n_boxes_x * by;
 
-		box_of_part[i] = box;
+		//box_of_part[i] = box;
 		parts_of_box[box].push_back(i);
 	}
 }
 
 /*
- * \brief Compute the indices of the neighboring boxes of each box.
+ * \brief Compute the indices of the neighboring boxes of each box
+ * along the 'positive' direction of each axis.
  */
 template<int DIM>
-void Boxes<DIM>::computeNbrs() {
+void Boxes<DIM>::computeNbrsPos() {
 	for (long k = 0 ; k < n_boxes ; ++k) {
-		nbrs[k].clear();
-		nbrs[k].push_back(k);
+		nbrs_pos[k].clear();
+		nbrs_pos[k].push_back(k);
 
 		long i = k;
 
 		for (int a = DIM-1 ; a >= 0 ; a--) {
-			std::vector<long> tmp = nbrs[k];
+			std::vector<long> tmp = nbrs_pos[k];
 
 			long p = mypow(n_boxes_x, a);
 			long ia = i / p; // Coordinate along axis a
-			// Periodic shift of +1 (resp -1) along axis a
-			long d1 = (ia - 1 + n_boxes_x) % n_boxes_x - ia;
-			long d2 = (ia + 1) % n_boxes_x - ia;
+			// Periodic shift of +1 along axis a
+			long d = (ia + 1) % n_boxes_x - ia;
 			i -= p * ia;
 
-			// We add the two shifts to the points we have so far
+			// We add shift to the points we have so far
 			for (long x : tmp) {
-				nbrs[k].push_back(x + p * d1);
-				nbrs[k].push_back(x + p * d2);
+				nbrs_pos[k].push_back(x + p * d);
 			}
 		}
 	}

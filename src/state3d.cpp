@@ -126,42 +126,41 @@ void State3d::calcInternalForces() {
 
 	// Recompute the boxes
 	boxes.update(&positions);
+	const long n_boxes = boxes.getNBoxes();
+	const std::vector< std::vector<long> > * nbrs_pos = boxes.getNbrsPos();
+	const std::vector< std::vector<long> > * parts_of_box = \
+		boxes.getPartsOfBox();
 
-    for (long i = 0 ; i < n_parts ; ++i) {
-		long k = boxes.getBoxOfPart(i);
-		/*std::cout << "(" << positions[i][0] << ", " << positions[i][1]
-			      << ") -> " << k << "\n";*/
+	for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
+		for (long b2 : (*nbrs_pos)[b1]) {
+			for (long i : (*parts_of_box)[b1]) {
+				for (long j : (*parts_of_box)[b2]) {
+					double dx = positions[i][0] - positions[j][0];
+					double dy = positions[i][1] - positions[j][1];
+					double dz = positions[i][2] - positions[j][2];
+					// We want the periodized interval to be centered in 0
+					pbcSym(dx, len);
+					pbcSym(dy, len);
+					pbcSym(dz, len);
+					double dr2 = dx * dx + dy * dy + dz * dz;
 
-		for(auto it_b = boxes.getNbrsBegin(k) ; it_b != boxes.getNbrsEnd(k) ; 
-		    ++it_b) {
-            for (auto it_j = boxes.getPartsOfBoxBegin(*it_b) ;
-                 it_j != boxes.getPartsOfBoxEnd(*it_b) && (*it_j) > i ;
-                 ++it_j) {
-				double dx = positions[i][0] - positions[*it_j][0];
-				double dy = positions[i][1] - positions[*it_j][1];
-				double dz = positions[i][2] - positions[*it_j][2];
-				// We want the periodized interval to be centered in 0
-				pbcSym(dx, len);
-				pbcSym(dy, len);
-				pbcSym(dz, len);
-				double dr2 = dx * dx + dy * dy + dz * dz;
+					if(dr2 * (1. - dr2) > 0.) {
+						double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
+						double fx = u * dx;
+						double fy = u * dy;
+						double fz = u * dz;
 
-				if(dr2 < 1. && dr2 > 0.) {
-					double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
-					double fx = u * dx;
-					double fy = u * dy;
-					double fz = u * dz;
-
-					forces[i][0] += fx;
-					forces[*it_j][0] -= fx;
-					forces[i][1] += fy;
-					forces[*it_j][1] -= fy;
-					forces[i][2] += fz;
-					forces[*it_j][2] -= fz;
+						forces[i][0] += fx;
+						forces[j][0] -= fx;
+						forces[i][1] += fy;
+						forces[j][1] -= fy;
+						forces[i][2] += fz;
+						forces[j][2] -= fz;
+					}
 				}
 			}
 		}
-    }
+	}
 }
 
 /* 

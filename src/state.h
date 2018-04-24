@@ -84,7 +84,7 @@ class State {
 		//! Positions of the particles
 		std::vector< std::array<double, 2> > positions;
 		std::vector<double> angles; //<! Angles
-		std::vector< std::array<double, 2> > forces;  //!< Internal forces
+		std::vector<double> forces;  //!< Internal forces
 };
 
 /*! 
@@ -99,6 +99,13 @@ template<typename T>
 void pbc(T &x, const T L){
 	x -= L * std::floor(x / L);
 }
+template<>
+void pbc<double>(double &x, const double L) {
+	// Trick to avoid floor
+	double a = x / L;
+	long i = (long) a;
+	x -= L * (i - (i > a));
+}
 
 /*! 
  * \brief Periodic boundary conditions on a segment (symmetric)
@@ -112,6 +119,12 @@ template<typename T>
 void pbcSym(T &x, const T L) {
 	x -= L * std::round(x / L);
 }
+template<>
+void pbcSym<double>(double &x, const double L) {
+	// Trick to avoid round
+	double d = (x / L) + 6755399441055744.0;
+	x -= L * reinterpret_cast<int32_t&>(d);
+}
 
 /*! 
  * \brief Periodic boundary conditions on a segment, with offset
@@ -122,10 +135,10 @@ void pbcSym(T &x, const T L) {
  * \param o Offset
  * \param L Length of the box
  */
-template<typename T, typename U>
+/*template<typename T, typename U>
 void pbcOffset(T &x, U &o, const T L) {
 	o = (U) std::floor(x / L);
 	x -= L * o;
-}
+}*/
 
 #endif // ACTIVEBROWNIAN_STATE_H_
