@@ -69,6 +69,7 @@ class Simul {
 		bool less_obs; //!< Output only (r, theta) correlations
 		double step_r; //!< Spatial resolution for correlations
 		long n_div_angle; //!< Number of angular points for correlations
+		int fac_boxes; //!< Factor for the boxes
 #ifndef NOVISU
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 #endif

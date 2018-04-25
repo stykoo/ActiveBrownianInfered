@@ -47,7 +47,7 @@ class State3d {
 		State3d(const double _len, const long _n_parts,
 		        const double _pot_strength, const double _temperature,
 			    const double _rot_dif, const double _activity,
-				const double _dt);
+				const double _dt, const int _fac_boxes);
 		void evolve(); //!< Do one time step
 
 		//! Get the x coordinate of the position of particle i  

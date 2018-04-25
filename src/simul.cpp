@@ -83,6 +83,9 @@ Simul::Simul(int argc, char **argv) {
 		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
 		("less", po::bool_switch(&less_obs),
 		 "Output only (r, theta) correlations")
+		("facBoxes",
+		 po::value<int>(&fac_boxes)->default_value(1),
+		 "Factor for the boxes")
 #ifndef NOVISU
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
@@ -114,7 +117,8 @@ Simul::Simul(int argc, char **argv) {
 		|| notPositive(pot_strength, "eps")
 		|| notPositive(temperature, "T") || notPositive(rot_dif, "rot_dif")
 		|| notPositive(activity, "actity") || notStrPositive(dt, "dt")
-		|| notPositive(n_iters, "n_iters")) {
+		|| notPositive(n_iters, "n_iters")
+		|| notStrPositive(fac_boxes, "fac_boxes")) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
@@ -149,7 +153,7 @@ void Simul::run() {
 	if (sim3d) {
 		// Initialize the state of the system
 		State3d state(len, n_parts, pot_strength, temperature, rot_dif,
-				      activity, dt);
+				      activity, dt, fac_boxes);
 		
 		// Start thread for visualization
 #ifndef NOVISU
@@ -177,7 +181,7 @@ void Simul::run() {
 	} else {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-					dt);
+					dt, fac_boxes);
 		Observables obs(len, n_parts, step_r, n_div_angle, less_obs);
 		
 #ifndef NOVISU

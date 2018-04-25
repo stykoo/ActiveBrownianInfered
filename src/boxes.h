@@ -41,7 +41,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 template<int DIM>
 class Boxes {
 	public:
-		Boxes(const double len, const long n_parts);
+		Boxes(const double len, const long n_parts, const int fac=1);
 		//! Update according to the positions
 		void update(const std::array< std::vector<double>, DIM> &pos);
 
@@ -50,12 +50,12 @@ class Boxes {
 			return n_boxes;
 		}
 
-		const std::vector< std::vector<long> > * getNbrsPos() const {
-			return &nbrs_pos;
+		const std::vector< std::vector<long> > & getNbrsPos() const {
+			return nbrs_pos;
 		}
 
-		const std::vector< std::vector<long> > * getPartsOfBox() const {
-			return &parts_of_box;
+		const std::vector< std::vector<long> > & getPartsOfBox() const {
+			return parts_of_box;
 		}
 
 	private:
@@ -64,8 +64,9 @@ class Boxes {
 
 		const long n_boxes_x; //!< Number of boxes in one direction
 		const long n_boxes; //!< Total number of boxes
-		const double len_box; //!< Length of a box (approximately 1)
+		const double len_box; //!< Length of a box (approximately 1/fac)
 		const long n_parts; //!< Number of particles
+		const int fac; //!< Factor for the size of the boxes
 		//! Neighboring boxes of a given box along the 'positive' directions
 		std::vector< std::vector<long> > nbrs_pos; 
 
@@ -99,9 +100,9 @@ int mypow(const T a, const U b) {
  * \param n_parts Number of particles
  */
 template<int DIM>
-Boxes<DIM>::Boxes(const double len, const long n_parts) :
-		n_boxes_x(std::floor(len)), n_boxes(mypow(n_boxes_x, DIM)),
-		len_box(len / n_boxes_x), n_parts(n_parts) {
+Boxes<DIM>::Boxes(const double len, const long n_parts, const int fac) :
+		n_boxes_x(fac * std::floor(len)), n_boxes(mypow(n_boxes_x, DIM)),
+		len_box(len / n_boxes_x), n_parts(n_parts), fac(fac) {
 	nbrs_pos.resize(n_boxes);
 	computeNbrsPos();
 	parts_of_box.resize(n_boxes);
@@ -161,27 +162,59 @@ void Boxes<2>::update(const std::array<std::vector<double>, 2> &pos) {
 /*
  * \brief Compute the indices of the neighboring boxes of each box
  * along the 'positive' direction of each axis.
+ *
+ * This is done only once and does not need to be efficient.
  */
 template<int DIM>
 void Boxes<DIM>::computeNbrsPos() {
+	std::array<double, DIM> pows_n_boxes_x;
+	for (int a = 0 ; a < DIM ; ++a) {
+		pows_n_boxes_x[a] = mypow(n_boxes_x, a);
+	}
+	std::array<long, DIM> coos;
+
+	// for all the particles
 	for (long k = 0 ; k < n_boxes ; ++k) {
+		// Coordinates of the box
+		long i = k;
+		for (int a = DIM-1 ; a >= 0 ; --a) {
+			coos[a] = i / pows_n_boxes_x[a];
+			i -= pows_n_boxes_x[a] * coos[a];
+		}
+
 		nbrs_pos[k].clear();
 		nbrs_pos[k].push_back(k);
 
-		long i = k;
+		// First dimension (half space)
+		for (int b = 0 ; b < fac ; ++b) {
+			long d = (coos[0] + 1 + b) % n_boxes_x - coos[0];
+			nbrs_pos[k].push_back(k + d);
 
-		for (int a = DIM-1 ; a >= 0 ; a--) {
+			// Second dimension for k + d (both sides)
+			for (int c = 0 ; c < fac ; ++c) {
+				long e1 = (coos[1] + c + 1) % n_boxes_x - coos[1];
+				long e2 = (coos[1] - c - 1 + n_boxes_x) % n_boxes_x - coos[1];
+				nbrs_pos[k].push_back(k + d + n_boxes_x * e1);
+				nbrs_pos[k].push_back(k + d + n_boxes_x * e2);
+			}
+		}
+		// Second dimension for k (only half space)
+		for (int b = 0 ; b < fac ; ++b) {
+			long d = (coos[1] + b + 1) % n_boxes_x - coos[1];
+			nbrs_pos[k].push_back(k + n_boxes_x * d);
+		}
+
+		// Other dimensions (both sides)
+		for (int a = 2 ; a < DIM ; ++a) {
 			std::vector<long> tmp = nbrs_pos[k];
 
-			long p = mypow(n_boxes_x, a);
-			long ia = i / p; // Coordinate along axis a
-			// Periodic shift of +1 along axis a
-			long d = (ia + 1) % n_boxes_x - ia;
-			i -= p * ia;
-
-			// We add shift to the points we have so far
-			for (long x : tmp) {
-				nbrs_pos[k].push_back(x + p * d);
+			for (int c = 0 ; c < fac ; ++c) {
+				long e1 = (coos[a] + c + 1) % n_boxes_x - coos[a];
+				long e2 = (coos[a] - c - 1 + n_boxes_x) % n_boxes_x - coos[a];
+				for (long x : tmp) {
+					nbrs_pos[k].push_back(x + pows_n_boxes_x[a] * e1);
+					nbrs_pos[k].push_back(x + pows_n_boxes_x[a] * e2);
+				}
 			}
 		}
 	}

@@ -43,13 +43,14 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * \param _rot_dif Rotational diffusivity
  * \param _activity Activity
  * \param _dt Timestep
+ * \param _fac_boxes Factor for the boxes
  */
 State::State(const double _len, const long _n_parts,
 	         const double _pot_strength, const double _temperature,
-			 const double _rot_dif, const double _activity, const double _dt) :
+			 const double _rot_dif, const double _activity, const double _dt,
+			 const int _fac_boxes) :
 	len(_len), n_parts(_n_parts), pot_strength(_pot_strength),
-	activity(_activity), dt(_dt),
-	boxes(_len, _n_parts),
+	activity(_activity), dt(_dt), boxes(_len, _n_parts, _fac_boxes),
 #ifdef USE_MKL
 	stddev_temp(std::sqrt(2.0 * _temperature * dt)),
 	stddev_rot(std::sqrt(2.0 * _rot_dif * dt))
@@ -156,14 +157,14 @@ void State::calcInternalForces() {
 	// Recompute the boxes
 	boxes.update(positions);
 	const long n_boxes = boxes.getNBoxes();
-	const std::vector< std::vector<long> > * nbrs_pos = boxes.getNbrsPos();
-	const std::vector< std::vector<long> > * parts_of_box = \
+	const std::vector< std::vector<long> > &nbrs_pos = boxes.getNbrsPos();
+	const std::vector< std::vector<long> > &parts_of_box = \
 		boxes.getPartsOfBox();
 
 	for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-		for (long b2 : (*nbrs_pos)[b1]) {
-			for (long i : (*parts_of_box)[b1]) {
-				for (long j : (*parts_of_box)[b2]) {
+		for (long b2 : nbrs_pos[b1]) {
+			for (long i : parts_of_box[b1]) {
+				for (long j : parts_of_box[b2]) {
 					double dx = positions[0][i] - positions[0][j];
 					double dy = positions[1][i] - positions[1][j];
 					// We want the periodized interval to be centered in 0
