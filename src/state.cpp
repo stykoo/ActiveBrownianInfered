@@ -212,4 +212,11 @@ void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
 	vdFloor(N, aux.data(), aux.data());
 	cblas_daxpy(N, -L, aux.data(), 1, v.data(), 1);
 }	
+
+void pbcSymMKL(std::vector<double> &v, const double L,
+		       std::vector<double> &aux, const long N) {
+	cblas_daxpby(N, 1.0 / L, v.data(), 1, 0.0, aux.data(), 1);
+	vdRound(N, aux.data(), aux.data());
+	cblas_daxpy(N, -L, aux.data(), 1, v.data(), 1);
+}	
 #endif

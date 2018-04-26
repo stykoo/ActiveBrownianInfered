@@ -50,8 +50,15 @@ class Observables {
 		const double step_r; //!< Size of spatial division
 		const long n_div_angle; //!< Number of divisions for angle
 		const bool less_obs; //!< Only (r, theta) correlations
-		const long n_div_r; //! Number of divisions in x
-		const long n_div_tot; //! Total number of divisions
+		const long n_div_r; //!< Number of divisions in x
+		const long n_div_tot; //!< Total number of divisions
+		const double scal_r; //!< Scale for spatial divisions
+		const double scal_angle; //!< Scale for angular divisions
+
+#ifdef USE_MKL
+		const std::vector<double> ones;
+		std::vector<double> dxs, dys, phis, drs, thetas1;
+#endif
 
 		std::vector<long long> correls; //!< Correlations
 };

@@ -43,7 +43,13 @@ Observables::Observables(const double len_, const long n_parts_,
         n_div_r((long) std::ceil(len * std::sqrt(0.5) / step_r)),
         n_div_tot((less_obs)
 				  ? n_div_r * n_div_angle
-				  : n_div_r * n_div_angle * n_div_angle) {
+				  : n_div_r * n_div_angle * n_div_angle),
+		scal_r(1.0 / step_r), scal_angle(n_div_angle / (2 * M_PI))
+#ifdef USE_MKL
+		, ones(n_parts, 1), dxs(n_parts), dys(n_parts),
+		phis(n_parts), drs(n_parts), thetas1(drs)
+#endif
+{
 	correls.assign(n_div_tot, 0);
 }
 
@@ -52,45 +58,90 @@ Observables::Observables(const double len_, const long n_parts_,
  * \brief Compute the observables for a given state
  */
 void Observables::compute(const State *state) {
+	const std::vector<double> & pos_x = state->getPosX();
+	const std::vector<double> & pos_y = state->getPosY();
+	const std::vector<double> & angles = state->getAngles();
+
 	// For each pair of particles
 	for (long i = 0 ; i < n_parts ; ++i) {
+#ifdef USE_MKL
+		long n_parts_j = n_parts - i - 1;
+		
+		// Computation of dx and dy
+		cblas_dcopy(n_parts_j, &pos_x.data()[i+1], 1, dxs.data(), 1);
+		cblas_daxpy(n_parts_j, pos_x[i], ones.data(), 1,
+				    dxs.data(), 1);
+		cblas_dcopy(n_parts_j, &pos_y.data()[i+1], 1, dys.data(), 1);
+		cblas_daxpy(n_parts_j, pos_y[i], ones.data(), 1,
+				    dys.data(), 1);
+		pbcSymMKL(dxs, len, phis, n_parts_j);
+		pbcSymMKL(dys, len, phis, n_parts_j);
+
+		// Computation of phis
+		vdAtan2(n_parts_j, dys.data(), dxs.data(), phis.data());
+
+		// Computation of drs
+		vdSqr(n_parts_j, dxs.data(), dxs.data());
+		vdSqr(n_parts_j, dys.data(), dys.data());
+		vdAdd(n_parts_j, dxs.data(), dys.data(), drs.data());
+		vdSqrt(n_parts_j, drs.data(), drs.data());
+		cblas_dscal(n_parts_j, scal_r, drs.data(), 1); // Scaling
+
+		// Computation of thetas1
+		vdSub(n_parts_j, &angles.data()[i+1], phis.data(), thetas1.data());
+		pbcMKL(thetas1, 2 * M_PI, dxs, n_parts_j);
+		cblas_dscal(n_parts_j, scal_angle, thetas1.data(), 1); // Scaling
+
+		// Computation of thetas2 *stored in phis*
+		if (!less_obs) {
+			cblas_daxpby(n_parts_j, angles[i], ones.data(), 1,
+						 -1.0, phis.data(), 1);
+			pbcMKL(phis, 2 * M_PI, dxs, n_parts_j);
+			cblas_dscal(n_parts_j, scal_angle, phis.data(), 1); // Scaling
+		}
+
+		for (long k = 0 ; k < n_parts_j ; ++k) {
+			size_t box = 0;
+			size_t b1 = (size_t) drs[k];
+			size_t b2 = (size_t) thetas1[k];
+			if (less_obs) {
+				box = b1 * n_div_angle + b2;
+			} else {
+				size_t b3 = (size_t) phis[k];
+				box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
+					  + b3;
+			}
+
+			correls[box]++; // Add 1 in the right box
+		}
+#else
 		for (long j = i + 1 ; j < n_parts ; ++j) {
-			double dx = state->getPosX(j) - state->getPosX(i);
+			double dx = pos_x[j] - pos_x[i];
 			pbcSym(dx, len);
-			double dy = state->getPosY(j) - state->getPosY(i);
+			double dy = pos_y[j] - pos_y[i];
 			pbcSym(dy, len);
 			double dr = std::sqrt(dx * dx + dy * dy);
 
-			if (dr > 0) {
-				double phi = std::atan2(dy, dx);
-				double theta1 = state->getAngle(j) - phi;
-				pbc(theta1, 2 * M_PI);
-				double theta2 = state->getAngle(i) - phi;
+			double phi = std::atan2(dy, dx);
+			double thetas1 = angles[j] - phi;
+			pbc(thetas1, 2 * M_PI);
+
+			size_t b1 = (size_t) (dr * scal_r);
+			size_t b2 = (size_t) (thetas1 * scal_angle);
+			size_t box = 0;
+			if (less_obs) {
+				box = b1 * n_div_angle + b2;
+			} else {
+				double theta2 = angles[i] - phi;
 				pbc(theta2, 2 * M_PI);
-
-				//size_t b1 = (size_t) std::floor(dr / step_r);
-				size_t b1 = (size_t) (dr / step_r);
-				//assert(b1 < (size_t) n_div_r);
-				//size_t b2 =
-					//(size_t) std::floor(theta1 * n_div_angle / (2 * M_PI));
-				size_t b2 = (size_t) (theta1 * n_div_angle / (2 * M_PI));
-				//assert(b2 < (size_t) n_div_angle);
-				size_t box = 0;
-				if (less_obs) {
-					box = b1 * n_div_angle + b2;
-				} else {
-					//size_t b3 =
-						//(size_t) std::floor(theta2 * n_div_angle / (2 * M_PI));
-					size_t b3 =
-						(size_t) (theta2 * n_div_angle / (2 * M_PI));
-					box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
-						  + b3;
-				}
-				//assert(b3 < (size_t) n_div_angle);
-
-				correls[box]++; // Add 1 in the right box
+				size_t b3 = (size_t) (theta2 * scal_angle);
+				box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
+					  + b3;
 			}
+
+			correls[box]++; // Add 1 in the right box
 		}
+#endif
 	}
 }
 

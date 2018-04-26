@@ -61,18 +61,18 @@ class State {
 		}
 		void evolve(); //!< Do one time step
 
-		//! Get the x coordinate of the position of particle i  
-		double getPosX(size_t i) const {
-			return positions[0][i];
+		//! Get the x coordinate of the positions 
+		const std::vector<double> & getPosX() const {
+			return positions[0];
 		}
-		//! Get the y coordinate of the position of particle i  
-		double getPosY(size_t i) const {
-			return positions[1][i];
+		//! Get the y coordinate of the positions 
+		const std::vector<double> & getPosY() const {
+			return positions[1];
 		}
 
 		//! Get angle of particle i
-		double getAngle(size_t i) const {
-			return angles[i];
+		const std::vector<double> & getAngles() const {
+			return angles;
 		}
 
 
@@ -129,6 +129,8 @@ void pbc<double>(double &x, const double L) {
 #ifdef USE_MKL
 void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
 	        const long N);
+void pbcSymMKL(std::vector<double> &v, const double L,
+		       std::vector<double> &aux, const long N);
 #endif
 
 /*! 

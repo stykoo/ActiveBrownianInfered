@@ -63,6 +63,10 @@ void Visu::run() {
 
     window.setFramerateLimit(FPS);
 
+	const std::vector<double> & pos_x = state->getPosX();
+	const std::vector<double> & pos_y = state->getPosY();
+	const std::vector<double> & angles = state->getAngles();
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -73,14 +77,14 @@ void Visu::run() {
         window.clear(sf::Color::White);
 
 		for (long i = 0 ; i < n_parts ; ++i) {
-			float x = state->getPosX(i) * scale; 
+			float x = pos_x[i] * scale; 
 			pbc(x, (float) windowSize);
-			float y = state->getPosY(i) * scale; 
+			float y = pos_y[i] * scale; 
 			pbc(y, (float) windowSize);
 
 			// Angle is coded both as color and as arrow
-			circle.setFillColor(colorFromAngle(state->getAngle(i)));
-			line.setRotation(state->getAngle(i) * 180.0 / M_PI);
+			circle.setFillColor(colorFromAngle(angles[i]));
+			line.setRotation(angles[i] * 180.0 / M_PI);
 
 			// Draw multiple times if on the boundary
 			int per_x = (x > windowSize - scale);
