@@ -120,7 +120,7 @@ void State::evolve() {
 			      aux_angle.data(), 0, stddev_rot);
 	vdAdd(n_parts, positions[0].data(), aux_x.data(), positions[0].data());
 	vdAdd(n_parts, positions[1].data(), aux_y.data(), positions[1].data());
-	vdAdd(n_parts, angles.data(), aux_x.data(), angles.data());
+	vdAdd(n_parts, angles.data(), aux_angle.data(), angles.data());
 #else
 	double c, s;
 	for (long i = 0 ; i < n_parts ; ++i) {
