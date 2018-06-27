@@ -116,7 +116,7 @@ Boxes<DIM>::Boxes(const double len, const long n_parts, const int fac) :
  * \param pos Positions of the particles
  */
 template<int DIM>
-void Boxes<DIM>::update(const std::array<std::vector<double>, DIM> &pos) {
+inline void Boxes<DIM>::update(const std::array<std::vector<double>, DIM> &pos) {
     for (long i=0 ; i < n_boxes ; ++i) {
 		parts_of_box[i].clear();
 	}
@@ -142,8 +142,9 @@ void Boxes<DIM>::update(const std::array<std::vector<double>, DIM> &pos) {
  *
  * \param pos Positions of the particles
  */
+
 template<>
-void Boxes<2>::update(const std::array<std::vector<double>, 2> &pos) {
+inline void Boxes<2>::update(const std::array<std::vector<double>, 2> &pos) {
     for (long i=0 ; i < n_boxes ; ++i) {
 		parts_of_box[i].clear();
 	}

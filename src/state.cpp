@@ -90,8 +90,8 @@ State::State(const double _len, const long _n_parts,
 		positions[0][i] = rndPos(rng);
 		positions[1][i] = rndPos(rng);
 		angles[i] = rndAngle(rng);
-		forces[i] = 0;
-		forces[n_parts + i] = 0;
+		forces[0][i] = 0;
+		forces[1][i] = 0;
 	}
 #endif
 }

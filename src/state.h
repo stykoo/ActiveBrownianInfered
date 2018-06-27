@@ -142,15 +142,15 @@ void pbcSymMKL(std::vector<double> &v, const double L,
  * \param L Length of the box
  */
 template<typename T>
-void pbcSym(T &x, const T L) {
+inline void pbcSym(T &x, const T L) {
 	x -= L * std::round(x / L);
 }
-template<>
-void pbcSym<double>(double &x, const double L) {
+/*template<>
+inline void pbcSym<double>(double &x, const double L) {
 	// Trick to avoid round
 	double d = (x / L) + 6755399441055744.0;
 	x -= L * reinterpret_cast<int32_t&>(d);
-}
+}*/
 
 /*! 
  * \brief Periodic boundary conditions on a segment, with offset
