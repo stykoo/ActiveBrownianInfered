@@ -33,6 +33,11 @@ include_directories(${HDF5_INCLUDE_DIRS})
 find_package(MKL)
 include_directories(${MKL_INCLUDE_DIRS})
 
+if(MKL_FOUND)
+	set(EXECUTABLE_NAME "ActiveBrownian_MKL")
+	set(EXECUTABLE_NAME_NOVISU "ActiveBrownian_MKL_novisu")
+endif()
+
 # Executable with visualization
 if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
 	include(${VTK_USE_FILE})
