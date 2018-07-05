@@ -46,8 +46,11 @@ Observables::Observables(const double len_, const long n_parts_,
 				  : n_div_r * n_div_angle * n_div_angle),
 		scal_r(1.0 / step_r), scal_angle(n_div_angle / (2 * M_PI))
 #ifdef USE_MKL
-		, ones(n_parts, 1), dxs(n_parts), dys(n_parts),
-		phis(n_parts), drs(n_parts), thetas1(drs)
+		/*, ones(n_parts, 1), dxs(n_parts), dys(n_parts),
+		phis(n_parts), drs(n_parts), thetas1(drs)*/
+		, n_pairs(n_parts * (n_parts - 1) / 2),
+		dxs(n_pairs), dys(n_pairs),
+		phis(n_pairs), drs(n_pairs), thetas1(n_pairs), thetas2(n_pairs)
 #endif
 {
 	correls.assign(n_div_tot, 0);
@@ -62,8 +65,86 @@ void Observables::compute(const State *state) {
 	const std::vector<double> & pos_y = state->getPosY();
 	const std::vector<double> & angles = state->getAngles();
 
+#ifdef USE_MKL
+	long k = 0;
+	for (long i = 0 ; i < n_parts ; ++i) {
+		for (long j = i + 1 ; j < n_parts ; ++j) {
+			dxs[k] = pos_x[j] - pos_x[i];
+			dys[k] = pos_y[j] - pos_y[i];
+			thetas1[k] = angles[j];
+			if (!less_obs){
+				thetas2[k] = angles[i];
+			}
+			++k;
+		}
+	}
+
+	pbcSymMKL(dxs, len, phis, n_pairs);
+	pbcSymMKL(dys, len, phis, n_pairs);
+	// Computation of phis
+	vdAtan2(n_pairs, dys.data(), dxs.data(), phis.data());
+	// Computation of drs
+	vdSqr(n_pairs, dxs.data(), dxs.data());
+	vdSqr(n_pairs, dys.data(), dys.data());
+	vdAdd(n_pairs, dxs.data(), dys.data(), drs.data());
+	vdSqrt(n_pairs, drs.data(), drs.data());
+	cblas_dscal(n_pairs, scal_r, drs.data(), 1); // Scaling
+	// Computation of thetas1
+	cblas_daxpy(n_pairs, -1.0, phis.data(), 1, thetas1.data(), 1);
+	pbcMKL(thetas1, 2 * M_PI, dxs, n_pairs);
+	cblas_dscal(n_pairs, scal_angle, thetas1.data(), 1); // Scaling
+	if (!less_obs) {
+		// Computation of thetas2
+		cblas_daxpy(n_pairs, -1.0, phis.data(), 1, thetas2.data(), 1);
+		pbcMKL(thetas2, 2 * M_PI, dxs, n_pairs);
+		cblas_dscal(n_pairs, scal_angle, thetas2.data(), 1); // Scaling
+	}
+
+	for (long k = 0 ; k < n_pairs ; ++k) {
+		size_t b1 = (size_t) drs[k];
+		size_t b2 = (size_t) thetas1[k];
+		size_t box = 0;
+		if (less_obs) {
+			box = b1 * n_div_angle + b2;
+		} else {
+			size_t b3 = (size_t) thetas2[k];
+			box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle + b3;
+		}
+
+		correls[box]++; // Add 1 in the right box
+	}
+#else
 	// For each pair of particles
 	for (long i = 0 ; i < n_parts ; ++i) {
+		for (long j = i + 1 ; j < n_parts ; ++j) {
+			double dx = pos_x[j] - pos_x[i];
+			pbcSym(dx, len);
+			double dy = pos_y[j] - pos_y[i];
+			pbcSym(dy, len);
+			double dr = std::sqrt(dx * dx + dy * dy);
+
+			double phi = std::atan2(dy, dx);
+			double thetas1 = angles[j] - phi;
+			pbc(thetas1, 2 * M_PI);
+
+			size_t b1 = (size_t) (dr * scal_r);
+			size_t b2 = (size_t) (thetas1 * scal_angle);
+			size_t box = 0;
+			if (less_obs) {
+				box = b1 * n_div_angle + b2;
+			} else {
+				double theta2 = angles[i] - phi;
+				pbc(theta2, 2 * M_PI);
+				size_t b3 = (size_t) (theta2 * scal_angle);
+				box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
+					  + b3;
+			}
+
+			correls[box]++; // Add 1 in the right box
+		}
+	}
+#endif
+	/*for (long i = 0 ; i < n_parts ; ++i) {
 #ifdef USE_MKL
 		long n_parts_j = n_parts - i - 1;
 		
@@ -142,7 +223,7 @@ void Observables::compute(const State *state) {
 			correls[box]++; // Add 1 in the right box
 		}
 #endif
-	}
+	}*/
 }
 
 /*

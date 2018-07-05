@@ -56,8 +56,9 @@ class Observables {
 		const double scal_angle; //!< Scale for angular divisions
 
 #ifdef USE_MKL
-		const std::vector<double> ones;
-		std::vector<double> dxs, dys, phis, drs, thetas1;
+		const long n_pairs;
+		//const std::vector<double> ones;
+		std::vector<double> dxs, dys, phis, drs, thetas1, thetas2;
 #endif
 
 		std::vector<long long> correls; //!< Correlations
