@@ -165,22 +165,24 @@ void State::calcInternalForces() {
 		for (long b2 : nbrs_pos[b1]) {
 			for (long i : parts_of_box[b1]) {
 				for (long j : parts_of_box[b2]) {
-					double dx = positions[0][i] - positions[0][j];
-					double dy = positions[1][i] - positions[1][j];
-					// We want the periodized interval to be centered in 0
-					pbcSym(dx, len);
-					pbcSym(dy, len);
-					double dr2 = dx * dx + dy * dy;
+					if (j < i) {
+						double dx = positions[0][i] - positions[0][j];
+						double dy = positions[1][i] - positions[1][j];
+						// We want the periodized interval to be centered in 0
+						pbcSym(dx, len);
+						pbcSym(dy, len);
+						double dr2 = dx * dx + dy * dy;
 
-					if(dr2 * (1. - dr2) > 0.) {
-						double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
-						double fx = u * dx;
-						double fy = u * dy;
+						if(dr2 * (1. - dr2) > 0.) {
+							double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
+							double fx = u * dx;
+							double fy = u * dy;
 
-						forces[0][i] += fx;
-						forces[0][j] -= fx;
-						forces[1][i] += fy;
-						forces[1][j] -= fy;
+							forces[0][i] += fx;
+							forces[0][j] -= fx;
+							forces[1][i] += fy;
+							forces[1][j] -= fy;
+						}
 					}
 				}
 			}
