@@ -145,12 +145,20 @@ template<typename T>
 inline void pbcSym(T &x, const T L) {
 	x -= L * std::round(x / L);
 }
-/*template<>
+
+// Trick to avoid round ASSUMING LITTLE ENDIAN
+union i_cast {double d; int i[2];};
+#define double2int(i, d, t)  \
+    {volatile union i_cast u; u.d = (d) + 6755399441055744.0; \
+    (i) = (t)u.i[0];}
+
+template<>
 inline void pbcSym<double>(double &x, const double L) {
-	// Trick to avoid round
-	double d = (x / L) + 6755399441055744.0;
-	x -= L * reinterpret_cast<int32_t&>(d);
-}*/
+	double d = x / L;
+	int i;
+	double2int(i, d, int);
+	x -= L * i;
+}
 
 /*! 
  * \brief Periodic boundary conditions on a segment, with offset
