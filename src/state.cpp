@@ -29,6 +29,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <chrono>
 #include <algorithm>
+#include <iostream>
 #include "state.h"
 
 /*!
@@ -161,32 +162,56 @@ void State::calcInternalForces() {
 	const std::vector< std::vector<long> > &parts_of_box = \
 		boxes.getPartsOfBox();
 
+	/*for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
+		std::cout << "-> " << b1 << ": ";
+		for (auto it_i = parts_of_box[b1].cbegin() ;
+			 it_i != parts_of_box[b1].cend() ; ++it_i) {
+			std::cout << *it_i << " ";
+		}
+		std::cout << std::endl;
+	}*/
+
 	for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-		for (long b2 : nbrs_pos[b1]) {
-			for (long i : parts_of_box[b1]) {
-				for (long j : parts_of_box[b2]) {
-					if (j < i) {
-						double dx = positions[0][i] - positions[0][j];
-						double dy = positions[1][i] - positions[1][j];
-						// We want the periodized interval to be centered in 0
-						pbcSym(dx, len);
-						pbcSym(dy, len);
-						double dr2 = dx * dx + dy * dy;
-
-						if(dr2 * (1. - dr2) > 0.) {
-							double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
-							double fx = u * dx;
-							double fy = u * dy;
-
-							forces[0][i] += fx;
-							forces[0][j] -= fx;
-							forces[1][i] += fy;
-							forces[1][j] -= fy;
-						}
-					}
+		//std::cout << "-> " << b1 << "\n";
+		for (auto it_i = parts_of_box[b1].cbegin() ;
+			 it_i != parts_of_box[b1].cend() ; ++it_i) {
+			// Same box
+			for (auto it_j = parts_of_box[b1].cbegin() ;
+				 it_j != it_i ; ++it_j) {
+				calcInternalForceIJ(*it_i, *it_j);
+			}
+			// Neighboring boxes
+			for (long b2 : nbrs_pos[b1]) {
+				//std::cout << "[" << b1 << ", " << b2 << "]\n";
+				for (auto it_j = parts_of_box[b2].cbegin() ;
+					 it_j != parts_of_box[b2].cend() ; ++it_j) {
+					calcInternalForceIJ(*it_i, *it_j);
 				}
 			}
 		}
+	}
+}
+
+//! Compute internal force between particles i and j
+void State::calcInternalForceIJ(const long i, const long j) {
+	//std::cout << i << " " << j << "\n";
+
+	double dx = positions[0][i] - positions[0][j];
+	double dy = positions[1][i] - positions[1][j];
+	// We want the periodized interval to be centered in 0
+	pbcSym(dx, len);
+	pbcSym(dy, len);
+	double dr2 = dx * dx + dy * dy;
+
+	if(dr2 * (1. - dr2) > 0.) {
+		double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
+		double fx = u * dx;
+		double fy = u * dy;
+
+		forces[0][i] += fx;
+		forces[0][j] -= fx;
+		forces[1][i] += fy;
+		forces[1][j] -= fy;
 	}
 }
 

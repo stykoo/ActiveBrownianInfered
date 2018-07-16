@@ -78,6 +78,8 @@ class State {
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces
+		 //! Compute internal force between particles i and j
+		void calcInternalForceIJ(const long i, const long j);
 		void enforcePBC(); //!< Enforce periodic boundary conditions
 
 		const double len; //!< Length of the box

@@ -30,6 +30,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <array>
+#include <iostream>
 
 /*!
  * \brief Class for the boxes in which particles are.
@@ -168,7 +169,7 @@ inline void Boxes<2>::update(const std::array<std::vector<double>, 2> &pos) {
  */
 template<int DIM>
 void Boxes<DIM>::computeNbrsPos() {
-	std::array<double, DIM> pows_n_boxes_x;
+	std::array<double, DIM> pows_n_boxes_x;	
 	for (int a = 0 ; a < DIM ; ++a) {
 		pows_n_boxes_x[a] = mypow(n_boxes_x, a);
 	}
@@ -184,7 +185,7 @@ void Boxes<DIM>::computeNbrsPos() {
 		}
 
 		nbrs_pos[k].clear();
-		nbrs_pos[k].push_back(k);
+		// nbrs_pos[k].push_back(k); // We no longer include the box itself
 
 		// First dimension (half space)
 		for (int b = 0 ; b < fac ; ++b) {
@@ -208,6 +209,7 @@ void Boxes<DIM>::computeNbrsPos() {
 		// Other dimensions (both sides)
 		for (int a = 2 ; a < DIM ; ++a) {
 			std::vector<long> tmp = nbrs_pos[k];
+			tmp.push_back(k);
 
 			for (int c = 0 ; c < fac ; ++c) {
 				long e1 = (coos[a] + c + 1) % n_boxes_x - coos[a];
@@ -218,6 +220,12 @@ void Boxes<DIM>::computeNbrsPos() {
 				}
 			}
 		}
+
+		/*std::cout << "[" << k << "] ";
+		for (long i : nbrs_pos[k]) {
+			std::cout << i << " ";
+		}
+		std::cout << std::endl;*/
 	}
 }
 
