@@ -46,13 +46,14 @@ Observables::Observables(const double len_, const long n_parts_,
 				  : n_div_r * n_div_angle * n_div_angle),
 		scal_r(1.0 / step_r), scal_angle(n_div_angle / (2 * M_PI))
 #ifdef USE_MKL
-		/*, ones(n_parts, 1), dxs(n_parts), dys(n_parts),
-		phis(n_parts), drs(n_parts), thetas1(drs)*/
 		, n_pairs(n_parts * (n_parts - 1) / 2),
 		dxs(n_pairs), dys(n_pairs),
 		phis(n_pairs), drs(n_pairs), thetas1(n_pairs), thetas2(n_pairs)
 #endif
 {
+	n_calls = 0;
+	f_along = 0.0;
+	f_along_sq = 0.0;
 	correls.assign(n_div_tot, 0);
 }
 
@@ -65,7 +66,13 @@ void Observables::compute(const State *state) {
 	const std::vector<double> & pos_y = state->getPosY();
 	const std::vector<double> & angles = state->getAngles();
 
-#ifdef USE_MKL
+	n_calls++;
+	// Average force along the orientation
+	double f = state-> avgFAlong();
+	f_along += f;
+	f_along_sq += f * f;
+
+#ifdef USE_MKL // MKL version
 	long k = 0;
 	for (long i = 0 ; i < n_parts ; ++i) {
 		for (long j = i + 1 ; j < n_parts ; ++j) {
@@ -113,7 +120,7 @@ void Observables::compute(const State *state) {
 
 		correls[box]++; // Add 1 in the right box
 	}
-#else
+#else // Basic version
 	// For each pair of particles
 	for (long i = 0 ; i < n_parts ; ++i) {
 		for (long j = i + 1 ; j < n_parts ; ++j) {
@@ -144,86 +151,6 @@ void Observables::compute(const State *state) {
 		}
 	}
 #endif
-	/*for (long i = 0 ; i < n_parts ; ++i) {
-#ifdef USE_MKL
-		long n_parts_j = n_parts - i - 1;
-		
-		// Computation of dx and dy
-		cblas_dcopy(n_parts_j, &pos_x.data()[i+1], 1, dxs.data(), 1);
-		cblas_daxpy(n_parts_j, pos_x[i], ones.data(), 1,
-				    dxs.data(), 1);
-		cblas_dcopy(n_parts_j, &pos_y.data()[i+1], 1, dys.data(), 1);
-		cblas_daxpy(n_parts_j, pos_y[i], ones.data(), 1,
-				    dys.data(), 1);
-		pbcSymMKL(dxs, len, phis, n_parts_j);
-		pbcSymMKL(dys, len, phis, n_parts_j);
-
-		// Computation of phis
-		vdAtan2(n_parts_j, dys.data(), dxs.data(), phis.data());
-
-		// Computation of drs
-		vdSqr(n_parts_j, dxs.data(), dxs.data());
-		vdSqr(n_parts_j, dys.data(), dys.data());
-		vdAdd(n_parts_j, dxs.data(), dys.data(), drs.data());
-		vdSqrt(n_parts_j, drs.data(), drs.data());
-		cblas_dscal(n_parts_j, scal_r, drs.data(), 1); // Scaling
-
-		// Computation of thetas1
-		vdSub(n_parts_j, &angles.data()[i+1], phis.data(), thetas1.data());
-		pbcMKL(thetas1, 2 * M_PI, dxs, n_parts_j);
-		cblas_dscal(n_parts_j, scal_angle, thetas1.data(), 1); // Scaling
-
-		// Computation of thetas2 *stored in phis*
-		if (!less_obs) {
-			cblas_daxpby(n_parts_j, angles[i], ones.data(), 1,
-						 -1.0, phis.data(), 1);
-			pbcMKL(phis, 2 * M_PI, dxs, n_parts_j);
-			cblas_dscal(n_parts_j, scal_angle, phis.data(), 1); // Scaling
-		}
-
-		for (long k = 0 ; k < n_parts_j ; ++k) {
-			size_t box = 0;
-			size_t b1 = (size_t) drs[k];
-			size_t b2 = (size_t) thetas1[k];
-			if (less_obs) {
-				box = b1 * n_div_angle + b2;
-			} else {
-				size_t b3 = (size_t) phis[k];
-				box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
-					  + b3;
-			}
-
-			correls[box]++; // Add 1 in the right box
-		}
-#else
-		for (long j = i + 1 ; j < n_parts ; ++j) {
-			double dx = pos_x[j] - pos_x[i];
-			pbcSym(dx, len);
-			double dy = pos_y[j] - pos_y[i];
-			pbcSym(dy, len);
-			double dr = std::sqrt(dx * dx + dy * dy);
-
-			double phi = std::atan2(dy, dx);
-			double thetas1 = angles[j] - phi;
-			pbc(thetas1, 2 * M_PI);
-
-			size_t b1 = (size_t) (dr * scal_r);
-			size_t b2 = (size_t) (thetas1 * scal_angle);
-			size_t box = 0;
-			if (less_obs) {
-				box = b1 * n_div_angle + b2;
-			} else {
-				double theta2 = angles[i] - phi;
-				pbc(theta2, 2 * M_PI);
-				size_t b3 = (size_t) (theta2 * scal_angle);
-				box = b1 * n_div_angle * n_div_angle + b2 * n_div_angle
-					  + b3;
-			}
-
-			correls[box]++; // Add 1 in the right box
-		}
-#endif
-	}*/
 }
 
 /*
@@ -310,6 +237,18 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 		H5::Attribute a_n_div_angle = dataset.createAttribute(
 				"n_div_angle", H5::PredType::NATIVE_LONG, default_ds);
 		a_n_div_angle.write(H5::PredType::NATIVE_LONG, &n_div_angle);
+
+		// Force along the orientation
+		H5::DataSet datasetF;
+		hsize_t d = 2;
+		H5::DataSpace dataspaceF(1, &d);
+		datasetF = file.createDataSet("falong",
+			  						  H5::PredType::NATIVE_DOUBLE,
+									  dataspaceF);
+		double ff[2];
+		ff[0] = f_along / n_calls;
+		ff[1] = (f_along_sq / n_calls) - (ff[0] * ff[0]);
+		datasetF.write(ff, H5::PredType::NATIVE_DOUBLE);
 	} catch (H5::Exception& err) {
         err.printError();
 	}

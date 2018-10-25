@@ -75,6 +75,8 @@ class State {
 			return angles;
 		}
 
+		double avgFAlong() const; //! Average force along the orientation
+
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces
@@ -106,6 +108,7 @@ class State {
 		std::array<std::vector<double>, 2> positions;
 		std::vector<double> angles; //<! Angles
 		std::array<std::vector<double>, 2> forces;  //!< Internal forces
+		std::vector<double> f_along; //!< Internal forces along the orientation
 };
 
 /*! 

@@ -61,6 +61,9 @@ class Observables {
 		std::vector<double> dxs, dys, phis, drs, thetas1, thetas2;
 #endif
 
+		long n_calls; //!< Number of calls of 'compute'
+		double f_along; //!< Internal force along the orientation
+		double f_along_sq; //!< Square of internal force along the orientation
 		std::vector<long long> correls; //!< Correlations
 };
 

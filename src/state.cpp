@@ -69,6 +69,7 @@ State::State(const double _len, const long _n_parts,
 	angles.resize(n_parts);
 	forces[0].assign(n_parts, 0);
 	forces[1].assign(n_parts, 0);
+	f_along.assign(n_parts, 0);
 
 #ifdef USE_MKL
 	aux_x.resize(n_parts);
@@ -106,8 +107,13 @@ void State::evolve() {
 	calcInternalForces();
 
 #ifdef USE_MKL
-	// Activity and forces
 	vdSinCos(n_parts, angles.data(), aux_y.data(), aux_x.data());
+	// It doesn't look optimal to do it each time
+	// but the alternative would be to store a copy of the angles.
+	for (long i = 0 ; i < n_parts ; ++i) {
+		f_along[i] = forces[0][i] * aux_x[i] + forces[1][i] * aux_y[i];
+	}
+	// Activity and forces
 	cblas_daxpy(n_parts, activity, aux_x.data(), 1, forces[0].data(), 1);
 	cblas_daxpy(n_parts, activity, aux_y.data(), 1, forces[1].data(), 1);
 	cblas_daxpy(n_parts, dt, forces[0].data(), 1, positions[0].data(), 1);
@@ -132,6 +138,7 @@ void State::evolve() {
 		s = std::sin(angles[i]);
 		c = std::cos(angles[i]);
 	#endif
+		f_along[i] = forces[0][i] * c + forces[1][i] * s;
 		// Internal forces +  Activity + Gaussian noise
 		positions[0][i] += dt * (forces[0][i] + activity * c);
 		positions[1][i] += dt * (forces[1][i] + activity * s);
@@ -143,6 +150,14 @@ void State::evolve() {
 #endif
 
 	enforcePBC();
+}
+
+double State::avgFAlong() const {
+	double f = 0.0;
+	for (long i = 0 ; i < n_parts ; ++i) {
+		f += f_along[i];
+	}
+	return f / n_parts;
 }
 
 /* \brief Compute the forces between the particles.
