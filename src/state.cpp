@@ -160,6 +160,14 @@ double State::avgFAlong() const {
 	return f / n_parts;
 }
 
+void State::dump() const {
+	for (long i = 0 ; i < n_parts ; ++i) {
+		std::cout << positions[0][i] << " "
+			<< positions[1][i] << " "
+			<< angles[i] * 180 / M_PI << "\n";
+	}
+}
+
 /* \brief Compute the forces between the particles.
  *
  * Implement harmonic spheres.

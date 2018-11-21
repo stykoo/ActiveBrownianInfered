@@ -76,6 +76,7 @@ class State {
 		}
 
 		double avgFAlong() const; //! Average force along the orientation
+		void dump() const; //!< Dump the positions and orientations
 
 
 	private:

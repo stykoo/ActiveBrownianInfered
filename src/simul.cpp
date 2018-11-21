@@ -209,6 +209,7 @@ void Simul::run() {
 
 		obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
 				    activity, dt, n_iters, n_iters_th, skip);
+		//state.dump();
 
 #ifndef NOVISU
 		thVisu.join();
