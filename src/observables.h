@@ -35,7 +35,7 @@ class Observables {
 	public:
 		Observables(const double len_, const long n_parts_,
 				    const double step_r_, const long n_div_angle_,
-					const bool less_obs_);
+					const bool less_obs_, const bool cartesian_);
 		//! Compute the observables for a given state
 		void compute(const State *state);
 		//! Export to hdf5
@@ -47,13 +47,14 @@ class Observables {
 	private:
 		const double len; //!< Length of the box
 		const long n_parts; //!< Number of particles 
-		const double step_r; //!< Size of spatial division
+		double step_r; //!< Size of spatial division
 		const long n_div_angle; //!< Number of divisions for angle
 		const bool less_obs; //!< Only (r, theta) correlations
-		const long n_div_r; //!< Number of divisions in x
-		const long n_div_tot; //!< Total number of divisions
-		const double scal_r; //!< Scale for spatial divisions
+		const bool cartesian; //!< Correlations in cartesian coordinates
+		double scal_r; //!< Scale for spatial divisions
 		const double scal_angle; //!< Scale for angular divisions
+		long n_div_r; //!< Number of divisions in x
+		long n_div_tot; //!< Total number of divisions
 
 #ifdef USE_MKL
 		const long n_pairs;

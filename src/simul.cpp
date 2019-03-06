@@ -83,6 +83,8 @@ Simul::Simul(int argc, char **argv) {
 		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
 		("less", po::bool_switch(&less_obs),
 		 "Output only (r, theta) correlations")
+		("cart", po::bool_switch(&cartesian),
+		 "Output correlations in cartesian coordinates")
 		("facBoxes",
 		 po::value<int>(&fac_boxes)->default_value(1),
 		 "Factor for the boxes")
@@ -121,6 +123,12 @@ Simul::Simul(int argc, char **argv) {
 		|| notStrPositive(fac_boxes, "fac_boxes")) {
 		status = SIMUL_INIT_FAILED;
 		return;
+	}
+
+	if (less_obs && cartesian) {
+		std::cerr << "Options --less and --cart are mutually exclusive"
+			<< std::endl;
+		status = SIMUL_INIT_FAILED;
 	}
 
 	if (sim3d) {
@@ -182,7 +190,8 @@ void Simul::run() {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
 					dt, fac_boxes);
-		Observables obs(len, n_parts, step_r, n_div_angle, less_obs);
+		Observables obs(len, n_parts, step_r, n_div_angle, less_obs,
+				        cartesian);
 		
 #ifndef NOVISU
 		// Start thread for visualization

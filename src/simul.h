@@ -67,6 +67,7 @@ class Simul {
 		std::string output; //!< Name of the output file
 		bool sim3d; //!< Simulation in 3d instead of 2d
 		bool less_obs; //!< Output only (r, theta) correlations
+		bool cartesian; //!< Output correlations in cartesian coordinates
 		double step_r; //!< Spatial resolution for correlations
 		long n_div_angle; //!< Number of angular points for correlations
 		int fac_boxes; //!< Factor for the boxes
