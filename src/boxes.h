@@ -42,7 +42,8 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 template<int DIM>
 class Boxes {
 	public:
-		Boxes(const double len, const long n_parts, const int fac=1);
+		Boxes(const double len, const long n_parts, const double size=1.0,
+			  const int fac=1);
 		//! Update according to the positions
 		void update(const std::array< std::vector<double>, DIM> &pos);
 
@@ -99,11 +100,14 @@ int mypow(const T a, const U b) {
  *
  * \param len Length of the system
  * \param n_parts Number of particles
+ * \param size Size of the box (default 1.0)
  */
 template<int DIM>
-Boxes<DIM>::Boxes(const double len, const long n_parts, const int fac) :
-		n_boxes_x(fac * std::floor(len)), n_boxes(mypow(n_boxes_x, DIM)),
-		len_box(len / n_boxes_x), n_parts(n_parts), fac(fac) {
+Boxes<DIM>::Boxes(const double len, const long n_parts, const double size,
+		          const int fac) :
+		n_boxes_x(fac * std::floor(len / size)),
+		n_boxes(mypow(n_boxes_x, DIM)), len_box(len / n_boxes_x),
+		n_parts(n_parts), fac(fac) {
 	nbrs_pos.resize(n_boxes);
 	computeNbrsPos();
 	parts_of_box.resize(n_boxes);

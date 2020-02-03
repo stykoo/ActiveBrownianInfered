@@ -80,6 +80,7 @@ Simul::Simul(int argc, char **argv) {
 		("divAngle,d",
 		 po::value<long>(&n_div_angle)->default_value(40),
 		 "Number of angular points for correlations")
+		("wca", po::bool_switch(&wca), "Use WCA potential")
 		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
 		("less", po::bool_switch(&less_obs),
 		 "Output only (r, theta) correlations")
@@ -189,7 +190,7 @@ void Simul::run() {
 	} else {
 		// Initialize the state of the system
 		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-					dt, fac_boxes);
+					dt, fac_boxes, wca);
 		Observables obs(len, n_parts, step_r, n_div_angle, less_obs,
 				        cartesian);
 		
@@ -239,6 +240,7 @@ void Simul::print() const {
 	          << ", pot_strength=" << pot_strength << ", temperature="
 			  << temperature << ", rot_dif=" << rot_dif << ", activity="
 			  << activity << ", dt=" << dt << ", n_iters=" << n_iters
-			  << ", n_iters_th=" << n_iters_th << ", skip=" << skip << "\n";
+			  << ", n_iters_th=" << n_iters_th << ", skip=" << skip
+			  << ", wca=" << wca << "\n";
 	std::cout << std::endl;
 }

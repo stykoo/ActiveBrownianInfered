@@ -40,6 +40,9 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 	#include <random>
 #endif
 
+// 2^(1/6)
+#define TWOONESIXTH 1.12246204830937298143 
+
 
 /*!
  * \brief Class for the state of the system
@@ -53,7 +56,7 @@ class State {
 		State(const double _len, const long _n_parts,
 		      const double _pot_strength, const double _temperature,
 			  const double _rot_dif, const double _activity, const double _dt,
-			  const int _fac_boxes);
+			  const int _fac_boxes, const bool _wca=false);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -81,8 +84,10 @@ class State {
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces
-		 //! Compute internal force between particles i and j
-		void calcInternalForceIJ(const long i, const long j);
+		 //! Compute internal force between particles i and j (soft)
+		void calcInternalForceIJ_soft(const long i, const long j);
+		 //! Compute internal force between particles i and j (WCA)
+		void calcInternalForceIJ_WCA(const long i, const long j);
 		void enforcePBC(); //!< Enforce periodic boundary conditions
 
 		const double len; //!< Length of the box
@@ -90,6 +95,7 @@ class State {
 		const double pot_strength; //!< Strength of the interparticle potential
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
+		const bool wca; //!< Use WCA potential
 
 		Boxes<2> boxes; //!< Boxes for algorithm
 
