@@ -19,7 +19,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Ofast -g -pg") # Profiling
 # This is not a strict requirement
 set(CMAKE_CXX_STANDARD 14)
 
-
 # Packages needed
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 find_package(HDF5 REQUIRED COMPONENTS C CXX)
@@ -27,7 +26,6 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 # If any of these is not found, only the novisu executable will be compiled
 find_package(Threads REQUIRED)
 find_package(SFML COMPONENTS system window graphics)
-find_package(VTK)
 include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(MKL)
@@ -39,8 +37,7 @@ if(MKL_FOUND)
 endif()
 
 # Executable with visualization
-if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
-	include(${VTK_USE_FILE})
+if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND})
 	file(
 		GLOB
 		source_files
@@ -65,12 +62,11 @@ if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND} AND ${VTK_FOUND})
 		${Boost_LIBRARIES}
 		${CMAKE_THREAD_LIBS_INIT}
 		${SFML_LIBRARIES}
-		${VTK_LIBRARIES}
 	)
 
-	message("Threads, SMFL and VTK were found: the executable with vizualization will be built.")
+	message("Threads and SMFL were found: the executable with vizualization will be built.")
 else()
-	message("Threads, SMFL or VTK was not found: only the executable without vizualization will be built.")
+	message("Threads or SMFL was not found: only the executable without vizualization will be built.")
 endif()
 
 

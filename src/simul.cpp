@@ -31,12 +31,10 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include "observables.h"
 #include "simul.h"
 #include "state.h"
-#include "state3d.h"
 
 #ifndef NOVISU
 #include <thread>
 #include "visu/visu.h"
-#include "visu/visu3d.h"
 #endif
 
 namespace po = boost::program_options;
@@ -81,7 +79,6 @@ Simul::Simul(int argc, char **argv) {
 		 po::value<long>(&n_div_angle)->default_value(40),
 		 "Number of angular points for correlations")
 		("wca", po::bool_switch(&wca), "Use WCA potential")
-		("3d,3", po::bool_switch(&sim3d), "Simulation in 3d instead of 2d")
 		("less", po::bool_switch(&less_obs),
 		 "Output only (r, theta) correlations")
 		("cart", po::bool_switch(&cartesian),
@@ -132,17 +129,7 @@ Simul::Simul(int argc, char **argv) {
 		status = SIMUL_INIT_FAILED;
 	}
 
-	if (sim3d) {
-		len = std::cbrt(n_parts / rho);
-	} else {
-		len = std::sqrt(n_parts / rho);
-	}
-#ifdef NOVISU
-	if (sim3d) {
-		std::cerr << "Currently no output for 3d simulations..." << std::endl;
-		status = SIMUL_INIT_FAILED;
-	}
-#endif
+	len = std::sqrt(n_parts / rho);
 }
 
 /*!
@@ -158,84 +145,50 @@ void Simul::run() {
 		          << std::endl;
 		return;
 	}
-
-	if (sim3d) {
-		// Initialize the state of the system
-		State3d state(len, n_parts, pot_strength, temperature, rot_dif,
-				      activity, dt, fac_boxes);
-		
-		// Start thread for visualization
+	
+	// Initialize the state of the system
+	State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
+				dt, fac_boxes, wca);
+	Observables obs(len, n_parts, step_r, n_div_angle, less_obs,
+					cartesian);
+	
 #ifndef NOVISU
-		Visu3d visu(&state, len, n_parts);
-		std::thread thVisu(&Visu3d::run, &visu); 
+	// Start thread for visualization
+	Visu visu(&state, len, n_parts);
+	std::thread thVisu(&Visu::run, &visu); 
 #endif
 
-		// Thermalization
-		for (long t = 0 ; t < n_iters_th ; ++t) {
-			state.evolve();
+	// Thermalization
+	for (long t = 0 ; t < n_iters_th ; ++t) {
+		state.evolve();
+	}
+	// Time evolution
+	for (long t = 0 ; t < n_iters ; ++t) {
+		state.evolve();
+		if (t % skip == 0) {
+			obs.compute(&state);
 		}
-		// Time evolution
-		for (long t = 0 ; t < n_iters ; ++t) {
-			state.evolve();
 #ifndef NOVISU
-			if (sleep > 0) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-			}
-#endif
+		if (sleep > 0) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 		}
-
-#ifndef NOVISU
-		thVisu.join();
-#endif
-	} else {
-		// Initialize the state of the system
-		State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-					dt, fac_boxes, wca);
-		Observables obs(len, n_parts, step_r, n_div_angle, less_obs,
-				        cartesian);
-		
-#ifndef NOVISU
-		// Start thread for visualization
-		Visu visu(&state, len, n_parts);
-		std::thread thVisu(&Visu::run, &visu); 
-#endif
-
-		// Thermalization
-		for (long t = 0 ; t < n_iters_th ; ++t) {
-			state.evolve();
-		}
-		// Time evolution
-		for (long t = 0 ; t < n_iters ; ++t) {
-			state.evolve();
-			if (t % skip == 0) {
-				obs.compute(&state);
-			}
-#ifndef NOVISU
-			if (sleep > 0) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-			}
-#endif
-		}
-
-		obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
-				    activity, dt, n_iters, n_iters_th, skip);
-		//state.dump();
-
-#ifndef NOVISU
-		thVisu.join();
 #endif
 	}
+
+	obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
+				activity, dt, n_iters, n_iters_th, skip);
+	//state.dump();
+
+#ifndef NOVISU
+		thVisu.join();
+#endif
 }
 
 /*!
  * \brief Print the parameters of the simulation
  */
 void Simul::print() const {
-	if (sim3d) {
-		std::cout << "# [3d] ";
-	} else {
-		std::cout << "# [2d] ";
-	}
+	std::cout << "# [2d] ";
 	std::cout << "rho=" << rho << ", n_parts=" << n_parts
 	          << ", pot_strength=" << pot_strength << ", temperature="
 			  << temperature << ", rot_dif=" << rot_dif << ", activity="

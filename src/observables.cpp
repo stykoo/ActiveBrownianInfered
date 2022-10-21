@@ -267,14 +267,14 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 			dims[2] = (hsize_t) n_div_angle;
 		}
 		// Create dataset
-		H5::DataSet dataset;
 		H5::DSetCreatPropList plist;
 		plist.setDeflate(6);
 		plist.setChunk(ndim, chunk_dims);
 		H5::DataSpace dataspace(ndim, dims);
-		dataset = file.createDataSet("correlations",
-									 H5::PredType::NATIVE_LLONG,
-									 dataspace, plist);
+		H5::DataSet dataset(
+			file.createDataSet("correlations", H5::PredType::NATIVE_LLONG,
+							   dataspace, plist)
+			);
 		// Write data
 		dataset.write(correls.data(), H5::PredType::NATIVE_LLONG);
 
@@ -289,17 +289,17 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 		}
 
 		// Force along the orientation
-		H5::DataSet datasetF;
 		hsize_t d = 2;
 		H5::DataSpace dataspaceF(1, &d);
-		datasetF = file.createDataSet("falong",
-			  						  H5::PredType::NATIVE_DOUBLE,
-									  dataspaceF);
+		H5::DataSet datasetF(
+				file.createDataSet("falong", H5::PredType::NATIVE_DOUBLE,
+								   dataspaceF)
+				);
 		double ff[2];
 		ff[0] = f_along / n_calls;
 		ff[1] = (f_along_sq / n_calls) - (ff[0] * ff[0]);
 		datasetF.write(ff, H5::PredType::NATIVE_DOUBLE);
 	} catch (H5::Exception& err) {
-        err.printError();
+        err.printErrorStack();
 	}
 }

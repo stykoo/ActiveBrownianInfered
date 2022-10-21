@@ -46,27 +46,21 @@ else()
   set(COR_LIB "mkl_core")
 endif()
 
-find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS $ENV{MKLROOT}/include)
+find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS /usr/include/mkl)
 
 find_library(MKL_INTERFACE_LIBRARY
              NAMES ${INT_LIB}
-             PATHS $ENV{MKLROOT}/lib
-                   $ENV{MKLROOT}/lib/intel64
-                   $ENV{INTEL}/mkl/lib/intel64
+             PATHS /usr/lib/x86_64-linux-gnu
              NO_DEFAULT_PATH)
 
 find_library(MKL_SEQUENTIAL_LAYER_LIBRARY
              NAMES ${SEQ_LIB}
-             PATHS $ENV{MKLROOT}/lib
-                   $ENV{MKLROOT}/lib/intel64
-                   $ENV{INTEL}/mkl/lib/intel64
+             PATHS /usr/lib/x86_64-linux-gnu
              NO_DEFAULT_PATH)
 
 find_library(MKL_CORE_LIBRARY
              NAMES ${COR_LIB}
-             PATHS $ENV{MKLROOT}/lib
-                   $ENV{MKLROOT}/lib/intel64
-                   $ENV{INTEL}/mkl/lib/intel64
+             PATHS /usr/lib/x86_64-linux-gnu
              NO_DEFAULT_PATH)
 
 set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR})

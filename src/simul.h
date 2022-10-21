@@ -66,7 +66,6 @@ class Simul {
 		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
 		bool wca; //!< Use WCA potential
-		bool sim3d; //!< Simulation in 3d instead of 2d
 		bool less_obs; //!< Output only (r, theta) correlations
 		bool cartesian; //!< Output correlations in cartesian coordinates
 		double step_r; //!< Spatial resolution for correlations
