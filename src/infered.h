@@ -13,8 +13,9 @@ class Infered {
 		                   double &f_r, double &f_t, double &f_o);
 
 	private:
-		void loadCoeffs(std::string fname,
-				        std::vector<std::vector<double>> &coeffs);
+		//void loadCoeffs(std::string fname,
+		//		        std::vector<std::vector<double>> &coeffs);
+		void loadCoeffs(std::string fname, std::vector<double> &coeffs);
 		void computeRadialCompos(const double r);
 		void computeAngularCompos(const double t1, const double t2);
 
@@ -22,21 +23,22 @@ class Infered {
 		const long n_modes; //!< Number of angular modes
 		const long n_modes_tot; //!< Total number of angular modes
 
-		std::vector< std::vector<double> > coeffs_r; //!< Coefficients
+		/*std::vector< std::vector<double> > coeffs_r; //!< Coefficients
 		std::vector< std::vector<double> > coeffs_t; //!< Coefficients
-		std::vector< std::vector<double> > coeffs_o; //!< Coefficients
-		//std::vector<double> coeffs_r; //!< Coefficients
-		//std::vector<double> coeffs_t; //!< Coefficients
-		//std::vector<double> coeffs_o; //!< Coefficients
+		std::vector< std::vector<double> > coeffs_o; //!< Coefficients */
+		std::vector<double> coeffs_r; //!< Coefficients
+		std::vector<double> coeffs_t; //!< Coefficients
+		std::vector<double> coeffs_o; //!< Coefficients
 
 		std::vector<long> ks1; //!< Coefficients in front of t1 in cos
 		std::vector<long> ks2; //!< Coefficients in front of t2 in cos
+
+		// Attributes above stay constant after initialization
+		// Attributes below are modified at each call of computeForces
 		std::vector<double> radialCompos; //!< Radial components
 		std::vector<double> angles;
 		std::vector<double> aux_cos;
 		std::vector<double> aux_sin;
 };
-
-//void base_funs(const double r, const int n_funs, std::vector<double> &res);
 
 #endif

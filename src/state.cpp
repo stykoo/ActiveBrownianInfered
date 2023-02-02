@@ -39,7 +39,6 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  *
  * \param _len Length of the box
  * \param _n_parts Number of particles
- * \param _pot_strength Strength of the interparticle potential
  * \param _temperature Temperature
  * \param _rot_dif Rotational diffusivity
  * \param _activity Activity
@@ -47,12 +46,11 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * \param _fac_boxes Factor for the boxes
  */
 State::State(const double _len, const long _n_parts,
-	         const double _pot_strength, const double _temperature,
+	         const double _temperature,
 			 const double _rot_dif, const double _activity, const double _dt,
-			 const int _fac_boxes, const Infered &_infered, const bool _wca) :
-	len(_len), n_parts(_n_parts), pot_strength(_pot_strength),
-	activity(_activity), dt(_dt), wca(_wca), infered(_infered),
-	boxes(_len, _n_parts, (_wca ? TWOONESIXTH : 1.0), _fac_boxes),
+			 Infered &_infered) :
+	len(_len), n_parts(_n_parts),
+	activity(_activity), dt(_dt), infered(_infered),
 #ifdef USE_MKL
 	stddev_temp(std::sqrt(2.0 * _temperature * dt)),
 	stddev_rot(std::sqrt(2.0 * _rot_dif * dt))
@@ -70,7 +68,7 @@ State::State(const double _len, const long _n_parts,
 	angles.resize(n_parts);
 	forces[0].assign(n_parts, 0);
 	forces[1].assign(n_parts, 0);
-	f_along.assign(n_parts, 0);
+	forces[2].assign(n_parts, 0);
 
 #ifdef USE_MKL
 	aux_x.resize(n_parts);
@@ -109,16 +107,12 @@ void State::evolve() {
 
 #ifdef USE_MKL
 	vdSinCos(n_parts, angles.data(), aux_y.data(), aux_x.data());
-	// It doesn't look optimal to do it each time
-	// but the alternative would be to store a copy of the angles.
-	for (long i = 0 ; i < n_parts ; ++i) {
-		f_along[i] = forces[0][i] * aux_x[i] + forces[1][i] * aux_y[i];
-	}
 	// Activity and forces
 	cblas_daxpy(n_parts, activity, aux_x.data(), 1, forces[0].data(), 1);
 	cblas_daxpy(n_parts, activity, aux_y.data(), 1, forces[1].data(), 1);
 	cblas_daxpy(n_parts, dt, forces[0].data(), 1, positions[0].data(), 1);
 	cblas_daxpy(n_parts, dt, forces[1].data(), 1, positions[1].data(), 1);
+	cblas_daxpy(n_parts, dt, forces[2].data(), 1, angles.data(), 1);
 	// Diffusion and rotational diffusion
 	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
 			      aux_x.data(), 0, stddev_temp);
@@ -139,7 +133,6 @@ void State::evolve() {
 		s = std::sin(angles[i]);
 		c = std::cos(angles[i]);
 	#endif
-		f_along[i] = forces[0][i] * c + forces[1][i] * s;
 		// Internal forces +  Activity + Gaussian noise
 		positions[0][i] += dt * (forces[0][i] + activity * c);
 		positions[1][i] += dt * (forces[1][i] + activity * s);
@@ -152,22 +145,6 @@ void State::evolve() {
 #endif
 
 	enforcePBC();
-}
-
-double State::avgFAlong() const {
-	double f = 0.0;
-	for (long i = 0 ; i < n_parts ; ++i) {
-		f += f_along[i];
-	}
-	return f / n_parts;
-}
-
-void State::dump() const {
-	for (long i = 0 ; i < n_parts ; ++i) {
-		std::cout << positions[0][i] << " "
-			<< positions[1][i] << " "
-			<< angles[i] * 180 / M_PI << "\n";
-	}
 }
 
 /* \brief Compute the forces between the particles.
@@ -184,113 +161,11 @@ void State::calcInternalForces() {
     for (long i = 0 ; i < n_parts ; ++i) {
 		for (long j = 0 ; j < n_parts ; ++j) {
 			if (i != j) {
-				computeInferedForceIJ(i, j);
+				calcInferedForceIJ(i, j);
 			}
 		}
 	}
 }
-
-/*void State::calcInternalForces() {
-    for (long i = 0 ; i < n_parts ; ++i) {
-		forces[0][i] = 0;
-		forces[1][i] = 0;
-		forces[2][i] = 0;
-    }
-
-	// Recompute the boxes
-	boxes.update(positions);
-	const long n_boxes = boxes.getNBoxes();
-	const std::vector< std::vector<long> > &nbrs_pos = boxes.getNbrsPos();
-	const std::vector< std::vector<long> > &parts_of_box = \
-		boxes.getPartsOfBox();
-
-	if (wca) {
-		for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-			for (auto it_i = parts_of_box[b1].cbegin() ;
-				 it_i != parts_of_box[b1].cend() ; ++it_i) {
-				// Same box
-				for (auto it_j = parts_of_box[b1].cbegin() ;
-					 it_j != it_i ; ++it_j) {
-					calcInternalForceIJ_WCA(*it_i, *it_j);
-				}
-				// Neighboring boxes
-				for (long b2 : nbrs_pos[b1]) {
-					for (auto it_j = parts_of_box[b2].cbegin() ;
-						 it_j != parts_of_box[b2].cend() ; ++it_j) {
-						calcInternalForceIJ_WCA(*it_i, *it_j);
-					}
-				}
-			}
-		}
-	} else {
-		for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-			for (auto it_i = parts_of_box[b1].cbegin() ;
-				 it_i != parts_of_box[b1].cend() ; ++it_i) {
-				// Same box
-				for (auto it_j = parts_of_box[b1].cbegin() ;
-					 it_j != it_i ; ++it_j) {
-					calcInternalForceIJ_soft(*it_i, *it_j);
-				}
-				// Neighboring boxes
-				for (long b2 : nbrs_pos[b1]) {
-					for (auto it_j = parts_of_box[b2].cbegin() ;
-						 it_j != parts_of_box[b2].cend() ; ++it_j) {
-						calcInternalForceIJ_soft(*it_i, *it_j);
-					}
-				}
-			}
-		}
-	}
-} */
-
-/*
-//! Compute internal force between particles i and j (soft potential)
-void State::calcInternalForceIJ_soft(const long i, const long j) {
-	// std::cout << i << " " << j << "\n";
-
-	double dx = positions[0][i] - positions[0][j];
-	double dy = positions[1][i] - positions[1][j];
-	// We want the periodized interval to be centered in 0
-	pbcSym(dx, len);
-	pbcSym(dy, len);
-	double dr2 = dx * dx + dy * dy;
-
-	if(dr2 * (1. - dr2) > 0.) {
-		double u = pot_strength * (1.0 / std::sqrt(dr2) - 1.0);
-		double fx = u * dx;
-		double fy = u * dy;
-
-		forces[0][i] += fx;
-		forces[0][j] -= fx;
-		forces[1][i] += fy;
-		forces[1][j] -= fy;
-	}
-}
-
-//! Compute internal force between particles i and j (WCA potential)
-void State::calcInternalForceIJ_WCA(const long i, const long j) {
-	//std::cout << i << " " << j << "\n";
-
-	double dx = positions[0][i] - positions[0][j];
-	double dy = positions[1][i] - positions[1][j];
-	// We want the periodized interval to be centered in 0
-	pbcSym(dx, len);
-	pbcSym(dy, len);
-	double dr2 = dx * dx + dy * dy;
-
-	if(dr2 * (TWOONESIXTH - dr2) > 0.) {
-		double u = pot_strength;
-		u *= (48. * pow(dr2, -7.) - 24.*pow(dr2, -4.)); 
-		double fx = u * dx;
-		double fy = u * dy;
-
-		forces[0][i] += fx;
-		forces[0][j] -= fx;
-		forces[1][i] += fy;
-		forces[1][j] -= fy;
-	}
-}
-*/
 
 void State::calcInferedForceIJ(const long i, const long j) {
 	double dx = positions[0][i] - positions[0][j];
@@ -304,7 +179,7 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	double s = dy / dr;
 
 	double fr, ft, fo;
-	infered.computeForces(r, angles[i], angles[j], fr, ft, fo);
+	infered.computeForces(dr, angles[i], angles[j], fr, ft, fo);
 
 	forces[0][i] += fr * c - ft * s;
 	forces[1][i] += fr * s + ft * c;
@@ -326,6 +201,14 @@ void State::enforcePBC() {
 		pbc(angles[i], 2.0 * M_PI);
 	}
 #endif
+}
+
+void State::dump() const {
+	for (long i = 0 ; i < n_parts ; ++i) {
+		std::cout << positions[0][i] << " "
+			<< positions[1][i] << " "
+			<< angles[i] * 180 / M_PI << "\n";
+	}
 }
 
 #ifdef USE_MKL

@@ -56,8 +56,6 @@ Simul::Simul(int argc, char **argv) {
 		("rho,r", po::value<double>(&rho)->required(), "Density")
 		("parts,n", po::value<long>(&n_parts)->required(),
 		 "Number of particles")
-		("eps,e", po::value<double>(&pot_strength)->default_value(1.0),
-		 "Strength of interparticle potential")
 		("temp,T", po::value<double>(&temperature)->required(), "Temperature")
 		("rdif,D", po::value<double>(&rot_dif)->required(),
 		 "Rotational diffusivity")
@@ -82,17 +80,6 @@ Simul::Simul(int argc, char **argv) {
 		("stepr,s",
 		 po::value<double>(&step_r)->default_value(0.2),
 		 "Spatial resolution for correlations")
-		("divAngle,d",
-		 po::value<long>(&n_div_angle)->default_value(40),
-		 "Number of angular points for correlations")
-		("wca", po::bool_switch(&wca), "Use WCA potential")
-		("less", po::bool_switch(&less_obs),
-		 "Output only (r, theta) correlations")
-		("cart", po::bool_switch(&cartesian),
-		 "Output correlations in cartesian coordinates")
-		("facBoxes",
-		 po::value<int>(&fac_boxes)->default_value(1),
-		 "Factor for the boxes")
 #ifndef NOVISU
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
@@ -121,19 +108,11 @@ Simul::Simul(int argc, char **argv) {
 
 	// Check if the values of the parameters are allowed
 	if (notStrPositive(rho, "rho") || notStrPositive(n_parts, "n_parts")
-		|| notPositive(pot_strength, "eps")
 		|| notPositive(temperature, "T") || notPositive(rot_dif, "rot_dif")
 		|| notPositive(activity, "actity") || notStrPositive(dt, "dt")
-		|| notPositive(n_iters, "n_iters")
-		|| notStrPositive(fac_boxes, "fac_boxes")) {
+		|| notPositive(n_iters, "n_iters")) {
 		status = SIMUL_INIT_FAILED;
 		return;
-	}
-
-	if (less_obs && cartesian) {
-		std::cerr << "Options --less and --cart are mutually exclusive"
-			<< std::endl;
-		status = SIMUL_INIT_FAILED;
 	}
 
 	len = std::sqrt(n_parts / rho);
@@ -156,10 +135,9 @@ void Simul::run() {
 	// Initialize the state of the system
 	Infered infered(n_funs, n_modes, fname_infered + "_r.dat",
 			        fname_infered + "_t.dat", fname_infered + "_o.dat");
-	State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-				dt, fac_boxes, infered, wca);
-	Observables obs(len, n_parts, step_r, n_div_angle, less_obs,
-					cartesian);
+	State state(len, n_parts, temperature, rot_dif, activity,
+				dt, infered);
+	Observables obs(len, n_parts, step_r);
 	
 #ifndef NOVISU
 	// Start thread for visualization
@@ -184,7 +162,7 @@ void Simul::run() {
 #endif
 	}
 
-	obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
+	obs.writeH5(output, rho, n_parts, temperature, rot_dif,
 				activity, dt, n_iters, n_iters_th, skip);
 	//state.dump();
 
@@ -199,10 +177,10 @@ void Simul::run() {
 void Simul::print() const {
 	std::cout << "# [2d] ";
 	std::cout << "rho=" << rho << ", n_parts=" << n_parts
-	          << ", pot_strength=" << pot_strength << ", temperature="
+	          << ", temperature="
 			  << temperature << ", rot_dif=" << rot_dif << ", activity="
 			  << activity << ", dt=" << dt << ", n_iters=" << n_iters
 			  << ", n_iters_th=" << n_iters_th << ", skip=" << skip
-			  << ", wca=" << wca << "\n";
+			  << "\n";
 	std::cout << std::endl;
 }

@@ -56,7 +56,6 @@ class Simul {
 	private:
 		double rho; //!< Density
 		long n_parts; //!< Number of particles
-		double pot_strength; //!< Strength of interparticle potential
 		double temperature; //!< Temperature
 		double rot_dif; //!< Rotational diffusivity
 		double activity; //!< Activity
@@ -68,12 +67,7 @@ class Simul {
 		long n_modes; //!< Number of angular modes
 		std::string fname_infered; //!< Filename for infered coefficients
 		std::string output; //!< Name of the output file
-		bool wca; //!< Use WCA potential
-		bool less_obs; //!< Output only (r, theta) correlations
-		bool cartesian; //!< Output correlations in cartesian coordinates
 		double step_r; //!< Spatial resolution for correlations
-		long n_div_angle; //!< Number of angular points for correlations
-		int fac_boxes; //!< Factor for the boxes
 #ifndef NOVISU
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 #endif

@@ -34,13 +34,12 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 class Observables {
 	public:
 		Observables(const double len_, const long n_parts_,
-				    const double step_r_, const long n_div_angle_,
-					const bool less_obs_, const bool cartesian_);
+				    const double step_r_);
 		//! Compute the observables for a given state
 		void compute(const State *state);
 		//! Export to hdf5
 		void writeH5(const std::string fname, double rho, long n_parts,
-	                 double pot_strength, double temperature, double rot_dif,
+	                 double temperature, double rot_dif,
 				     double activity, double dt, long n_iters, long n_iters_th,
 					 long skip) const;
 
@@ -48,23 +47,17 @@ class Observables {
 		const double len; //!< Length of the box
 		const long n_parts; //!< Number of particles 
 		double step_r; //!< Size of spatial division
-		const long n_div_angle; //!< Number of divisions for angle
-		const bool less_obs; //!< Only (r, theta) correlations
-		const bool cartesian; //!< Correlations in cartesian coordinates
 		double scal_r; //!< Scale for spatial divisions
-		const double scal_angle; //!< Scale for angular divisions
 		long n_div_r; //!< Number of divisions in x
 		long n_div_tot; //!< Total number of divisions
 
 #ifdef USE_MKL
 		const long n_pairs;
 		//const std::vector<double> ones;
-		std::vector<double> dxs, dys, phis, drs, thetas1, thetas2;
+		std::vector<double> dxs, dys, phis, drs, thetas1;
 #endif
 
 		long n_calls; //!< Number of calls of 'compute'
-		double f_along; //!< Internal force along the orientation
-		double f_along_sq; //!< Square of internal force along the orientation
 		std::vector<long long> correls; //!< Correlations
 };
 

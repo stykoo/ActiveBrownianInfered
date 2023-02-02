@@ -32,7 +32,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <array>
 #include "infered.h"
-#include "boxes.h"
+//#include "boxes.h"
 
 #ifdef USE_MKL
 	#include "mkl.h"
@@ -54,11 +54,9 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 class State {
 	public:
 		//! Constructor of State
-		State(const double _len, const long _n_parts,
-		      const double _pot_strength, const double _temperature,
+		State(const double _len, const long _n_parts, const double _temperature,
 			  const double _rot_dif, const double _activity, const double _dt,
-			  const int _fac_boxes, const Infered &_infered,
-			  const bool _wca=false);
+			  Infered &_infered);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -74,34 +72,24 @@ class State {
 		const std::vector<double> & getPosY() const {
 			return positions[1];
 		}
-
 		//! Get angle of particle i
 		const std::vector<double> & getAngles() const {
 			return angles;
 		}
 
-		double avgFAlong() const; //! Average force along the orientation
 		void dump() const; //!< Dump the positions and orientations
 
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces
-		 //! Compute internal force between particles i and j (soft)
-		//void calcInternalForceIJ_soft(const long i, const long j);
-		 //! Compute internal force between particles i and j (WCA)
-		////void calcInternalForceIJ_WCA(const long i, const long j);
 		void calcInferedForceIJ(const long i, const long j);
 		void enforcePBC(); //!< Enforce periodic boundary conditions
 
 		const double len; //!< Length of the box
 		const long n_parts; //!< Number of particles
-		const double pot_strength; //!< Strength of the interparticle potential
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
-		const bool wca; //!< Use WCA potential
-		const Infered &infered; //!< Structure for inference
-
-		Boxes<2> boxes; //!< Boxes for algorithm
+		Infered &infered; //!< Structure for inference
 
 #ifdef USE_MKL
 		double stddev_temp, stddev_rot;
@@ -119,7 +107,6 @@ class State {
 		std::array<std::vector<double>, 2> positions;
 		std::vector<double> angles; //<! Angles
 		std::array<std::vector<double>, 3> forces;  //!< Internal forces
-		std::vector<double> f_along; //!< Internal forces along the orientation
 };
 
 /*! 
