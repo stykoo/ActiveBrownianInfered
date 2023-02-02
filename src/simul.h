@@ -64,6 +64,9 @@ class Simul {
 		long n_iters; //!< Number of time iterations
 		long n_iters_th; //!< Number of time iterations of thermalization
 		long skip; //!< Iterations between two computation of observables
+		long n_funs; //!< Number of radial functions
+		long n_modes; //!< Number of angular modes
+		std::string fname_infered; //!< Filename for infered coefficients
 		std::string output; //!< Name of the output file
 		bool wca; //!< Use WCA potential
 		bool less_obs; //!< Output only (r, theta) correlations

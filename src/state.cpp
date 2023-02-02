@@ -49,9 +49,9 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 State::State(const double _len, const long _n_parts,
 	         const double _pot_strength, const double _temperature,
 			 const double _rot_dif, const double _activity, const double _dt,
-			 const int _fac_boxes, const bool _wca) :
+			 const int _fac_boxes, const Infered &_infered, const bool _wca) :
 	len(_len), n_parts(_n_parts), pot_strength(_pot_strength),
-	activity(_activity), dt(_dt), wca(_wca),
+	activity(_activity), dt(_dt), wca(_wca), infered(_infered),
 	boxes(_len, _n_parts, (_wca ? TWOONESIXTH : 1.0), _fac_boxes),
 #ifdef USE_MKL
 	stddev_temp(std::sqrt(2.0 * _temperature * dt)),
@@ -143,6 +143,7 @@ void State::evolve() {
 		// Internal forces +  Activity + Gaussian noise
 		positions[0][i] += dt * (forces[0][i] + activity * c);
 		positions[1][i] += dt * (forces[1][i] + activity * s);
+		angles[i] += dt * forces[2][i];
 		// Diffusion and rotational diffusion
 		positions[0][i] += noiseTemp(rng);
 		positions[1][i] += noiseTemp(rng); 
@@ -177,6 +178,23 @@ void State::calcInternalForces() {
     for (long i = 0 ; i < n_parts ; ++i) {
 		forces[0][i] = 0;
 		forces[1][i] = 0;
+		forces[2][i] = 0;
+    }
+
+    for (long i = 0 ; i < n_parts ; ++i) {
+		for (long j = 0 ; j < n_parts ; ++j) {
+			if (i != j) {
+				computeInferedForceIJ(i, j);
+			}
+		}
+	}
+}
+
+/*void State::calcInternalForces() {
+    for (long i = 0 ; i < n_parts ; ++i) {
+		forces[0][i] = 0;
+		forces[1][i] = 0;
+		forces[2][i] = 0;
     }
 
 	// Recompute the boxes
@@ -186,18 +204,8 @@ void State::calcInternalForces() {
 	const std::vector< std::vector<long> > &parts_of_box = \
 		boxes.getPartsOfBox();
 
-	/*for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-		std::cout << "-> " << b1 << ": ";
-		for (auto it_i = parts_of_box[b1].cbegin() ;
-			 it_i != parts_of_box[b1].cend() ; ++it_i) {
-			std::cout << *it_i << " ";
-		}
-		std::cout << std::endl;
-	}*/
-
 	if (wca) {
 		for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-			//std::cout << "-> " << b1 << "\n";
 			for (auto it_i = parts_of_box[b1].cbegin() ;
 				 it_i != parts_of_box[b1].cend() ; ++it_i) {
 				// Same box
@@ -207,7 +215,6 @@ void State::calcInternalForces() {
 				}
 				// Neighboring boxes
 				for (long b2 : nbrs_pos[b1]) {
-					//std::cout << "[" << b1 << ", " << b2 << "]\n";
 					for (auto it_j = parts_of_box[b2].cbegin() ;
 						 it_j != parts_of_box[b2].cend() ; ++it_j) {
 						calcInternalForceIJ_WCA(*it_i, *it_j);
@@ -234,8 +241,9 @@ void State::calcInternalForces() {
 			}
 		}
 	}
-}
+} */
 
+/*
 //! Compute internal force between particles i and j (soft potential)
 void State::calcInternalForceIJ_soft(const long i, const long j) {
 	// std::cout << i << " " << j << "\n";
@@ -281,6 +289,26 @@ void State::calcInternalForceIJ_WCA(const long i, const long j) {
 		forces[1][i] += fy;
 		forces[1][j] -= fy;
 	}
+}
+*/
+
+void State::calcInferedForceIJ(const long i, const long j) {
+	double dx = positions[0][i] - positions[0][j];
+	double dy = positions[1][i] - positions[1][j];
+
+	// We want the periodized interval to be centered on 0
+	pbcSym(dx, len);
+	pbcSym(dy, len);
+	double dr = std::sqrt(dx * dx + dy * dy);
+	double c = dx / dr;
+	double s = dy / dr;
+
+	double fr, ft, fo;
+	infered.computeForces(r, angles[i], angles[j], fr, ft, fo);
+
+	forces[0][i] += fr * c - ft * s;
+	forces[1][i] += fr * s + ft * c;
+	forces[2][i] += fo;
 }
 
 /* 

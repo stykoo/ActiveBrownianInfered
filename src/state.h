@@ -31,6 +31,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <array>
+#include "infered.h"
 #include "boxes.h"
 
 #ifdef USE_MKL
@@ -56,7 +57,8 @@ class State {
 		State(const double _len, const long _n_parts,
 		      const double _pot_strength, const double _temperature,
 			  const double _rot_dif, const double _activity, const double _dt,
-			  const int _fac_boxes, const bool _wca=false);
+			  const int _fac_boxes, const Infered &_infered,
+			  const bool _wca=false);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -85,9 +87,10 @@ class State {
 	private:
 		void calcInternalForces(); //!< Compute internal forces
 		 //! Compute internal force between particles i and j (soft)
-		void calcInternalForceIJ_soft(const long i, const long j);
+		//void calcInternalForceIJ_soft(const long i, const long j);
 		 //! Compute internal force between particles i and j (WCA)
-		void calcInternalForceIJ_WCA(const long i, const long j);
+		////void calcInternalForceIJ_WCA(const long i, const long j);
+		void calcInferedForceIJ(const long i, const long j);
 		void enforcePBC(); //!< Enforce periodic boundary conditions
 
 		const double len; //!< Length of the box
@@ -96,6 +99,7 @@ class State {
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
 		const bool wca; //!< Use WCA potential
+		const Infered &infered; //!< Structure for inference
 
 		Boxes<2> boxes; //!< Boxes for algorithm
 
@@ -114,7 +118,7 @@ class State {
 		//! Positions of the particles
 		std::array<std::vector<double>, 2> positions;
 		std::vector<double> angles; //<! Angles
-		std::array<std::vector<double>, 2> forces;  //!< Internal forces
+		std::array<std::vector<double>, 3> forces;  //!< Internal forces
 		std::vector<double> f_along; //!< Internal forces along the orientation
 };
 

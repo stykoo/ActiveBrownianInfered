@@ -69,6 +69,13 @@ Simul::Simul(int argc, char **argv) {
 		 "Number of time iterations of thermalization")
 		("skip,S", po::value<long>(&skip)->default_value(100),
 		 "Iterations between two computations of observables")
+		("nfuns", po::value<long>(&n_funs)->required(),
+		 "Number of radial functions")
+		("nmodes", po::value<long>(&n_modes)->required(),
+		 "Number of angular modes")
+		("infered",
+		 po::value<std::string>(&fname_infered)->default_value("infered"),
+		 "Filename for infered coefficients")
 		("output,O",
 		 po::value<std::string>(&output)->default_value("observables.h5"),
 		 "Name of the output file")
@@ -147,8 +154,10 @@ void Simul::run() {
 	}
 	
 	// Initialize the state of the system
+	Infered infered(n_funs, n_modes, fname_infered + "_r.dat",
+			        fname_infered + "_t.dat", fname_infered + "_o.dat");
 	State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-				dt, fac_boxes, wca);
+				dt, fac_boxes, infered, wca);
 	Observables obs(len, n_parts, step_r, n_div_angle, less_obs,
 					cartesian);
 	
