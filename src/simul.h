@@ -68,6 +68,7 @@ class Simul {
 		std::string fname_infered; //!< Filename for infered coefficients
 		std::string output; //!< Name of the output file
 		double step_r; //!< Spatial resolution for correlations
+		long n_div_angle; //!< Number of angular points for correlations
 #ifndef NOVISU
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 #endif

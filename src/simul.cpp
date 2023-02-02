@@ -80,6 +80,8 @@ Simul::Simul(int argc, char **argv) {
 		("stepr,s",
 		 po::value<double>(&step_r)->default_value(0.2),
 		 "Spatial resolution for correlations")
+		("divAngle,d",
+		 po::value<long>(&n_div_angle)->default_value(40))
 #ifndef NOVISU
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
@@ -137,7 +139,8 @@ void Simul::run() {
 			        fname_infered + "_t.dat", fname_infered + "_o.dat");
 	State state(len, n_parts, temperature, rot_dif, activity,
 				dt, infered);
-	Observables obs(len, n_parts, step_r);
+	Observables obs(len, n_parts, step_r, n_div_angle);
+	obs.computeForces(infered);
 	
 #ifndef NOVISU
 	// Start thread for visualization

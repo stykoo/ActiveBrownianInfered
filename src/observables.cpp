@@ -35,8 +35,10 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * Initialize the vector for correlations.
  */
 Observables::Observables(const double len_, const long n_parts_,
-		                 const double step_r_) :
-		len(len_), n_parts(n_parts_), step_r(step_r_), scal_r(1.0 / step_r)
+		                 const double step_r_, const long n_div_angle_) :
+		len(len_), n_parts(n_parts_), step_r(step_r_),
+		n_div_angle(n_div_angle_),
+		scal_r(1.0 / step_r), step_angle((2 * M_PI) / n_div_angle)
 #ifdef USE_MKL
 		, n_pairs(n_parts * (n_parts - 1) / 2),
 		dxs(n_pairs), dys(n_pairs),
@@ -49,6 +51,9 @@ Observables::Observables(const double len_, const long n_parts_,
 	scal_r = 1.0 / step_r;
 	n_calls = 0;
 	correls.assign(n_div_tot, 0);
+	forces_r.assign(n_div_angle * n_div_angle * n_div_r, 0);
+	forces_t.assign(n_div_angle * n_div_angle * n_div_r, 0);
+	forces_o.assign(n_div_angle * n_div_angle * n_div_r, 0);
 }
 
 
@@ -135,6 +140,24 @@ void Observables::compute(const State *state) {
 #endif
 }
 
+void Observables::computeForces(Infered &infered) {
+	double fr, ft, fo;
+	long b;
+
+	for (long i = 0 ; i < n_div_r ; ++i) {
+		for (long j = 0 ; j < n_div_angle ; ++j) {
+			for (long k = 0 ; k < n_div_angle ; ++k) {
+				infered.computeForces(i * step_r, j * step_angle, k * step_angle,
+						              fr, ft, fo);
+				b = i*n_div_angle*n_div_angle + j*n_div_angle + k;
+				forces_r[b] = fr;
+				forces_t[b] = ft;
+				forces_o[b] = fo;
+			}
+		}
+	}
+}
+
 /*
  * \brief Export the observables to a hdf5 file
  */
@@ -174,13 +197,15 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 		H5::Attribute a_skip = file.createAttribute(
 				"skip", H5::PredType::NATIVE_LONG, default_ds);
 		a_skip.write(H5::PredType::NATIVE_LONG, &skip);
+		H5::Attribute a_dr = file.createAttribute(
+				"dr", H5::PredType::NATIVE_DOUBLE, default_ds);
+		a_dr.write(H5::PredType::NATIVE_DOUBLE, &step_r);
 		
 		// We chunk the data and compress it
 		// Chunking should depend on how we intend to read the data
 		hsize_t chunk_dims[3]; // Dimension of a chunk (compression)
 		hsize_t dims[3]; // Dimensions of the data
-		int ndim = 3;
-		ndim = 2;
+		int ndim = 2;
 		chunk_dims[0] = 1;
 		chunk_dims[1] = std::min(1000l, n_div_r);
 		dims[0] = (hsize_t) n_div_r;
@@ -198,10 +223,34 @@ void Observables::writeH5(const std::string fname, double rho, long n_parts,
 		// Write data
 		dataset.write(correls.data(), H5::PredType::NATIVE_LLONG);
 
-		// Attributes for correlations
-		H5::Attribute a_dr = dataset.createAttribute(
-				"dr", H5::PredType::NATIVE_DOUBLE, default_ds);
-		a_dr.write(H5::PredType::NATIVE_DOUBLE, &step_r);
+		ndim = 3;
+		long chunk_w = std::min(100l, n_div_angle); // 100 * 100 * 64 < 1M
+		chunk_dims[0] = 1;
+		chunk_dims[1] = (hsize_t) chunk_w;
+		chunk_dims[2] = (hsize_t) chunk_w;
+		dims[0] = (hsize_t) n_div_r;
+		dims[1] = (hsize_t) n_div_angle;
+		dims[2] = (hsize_t) n_div_angle;
+		H5::DSetCreatPropList plist2;
+		plist2.setDeflate(6);
+		plist2.setChunk(ndim, chunk_dims);
+		H5::DataSpace dataspace2(ndim, dims);
+
+		H5::DataSet dataset_r(
+			file.createDataSet("forces_r", H5::PredType::NATIVE_DOUBLE,
+							   dataspace2, plist2)
+			);
+		dataset_r.write(forces_r.data(), H5::PredType::NATIVE_DOUBLE);
+		H5::DataSet dataset_t(
+			file.createDataSet("forces_t", H5::PredType::NATIVE_DOUBLE,
+							   dataspace2, plist2)
+			);
+		dataset_t.write(forces_t.data(), H5::PredType::NATIVE_DOUBLE);
+		H5::DataSet dataset_o(
+			file.createDataSet("forces_o", H5::PredType::NATIVE_DOUBLE,
+							   dataspace2, plist2)
+			);
+		dataset_o.write(forces_o.data(), H5::PredType::NATIVE_DOUBLE);
 	} catch (H5::Exception& err) {
         err.printErrorStack();
 	}

@@ -20,7 +20,7 @@ Infered::Infered(long n_funs_, long n_modes_, std::string fname_r,
 	// Compute coefficients in front of theta1 and theta2 in cos
 	ks1.push_back(0);
 	ks2.push_back(0);
-	for (long n = 0 ; n < n_modes ; ++n) {
+	for (long n = 1 ; n <= n_modes ; ++n) {
 		for (long k = -n+1 ; k <=n ; ++k) {
 			ks1.push_back(n-std::abs(k));
 			ks2.push_back(k);
@@ -48,7 +48,7 @@ void Infered::loadCoeffs(std::string fname, std::vector<double> &coeffs) {
         std::istringstream ss(line);
 		std::istream_iterator<double> begin(ss);
 		while (begin != end) {
-			std::cout << *begin << "\n";
+			//std::cout << *begin << "\n";
 			coeffs.push_back(*begin++);
 		}
     }
@@ -56,28 +56,6 @@ void Infered::loadCoeffs(std::string fname, std::vector<double> &coeffs) {
 	// Check if dimensions are correct
 	assert(coeffs.size() == (size_t) n_funs * n_modes_tot);
 }
-
-/*void Infered::loadCoeffs(std::string fname,
-		                 std::vector<std::vector<double>> &coeffs) {
-	std::string line;
-	std::ifstream infile(fname);
-	assert(infile);
-
-	// Read matrix of coefficients
-	while (std::getline(infile, line)) {
-        std::istringstream ss(line);
-        coeffs.emplace_back(
-				std::istream_iterator<double>(ss),
-				std::istream_iterator<double>()
-			);
-    }
-
-	// Check if dimensions are correct
-	assert(coeffs.size() == (size_t) n_funs);
-	for (long i = 0 ; i < n_funs ; ++i) {
-		assert(coeffs[i].size() == (size_t) n_modes_tot);
-	}
-}*/
 
 void Infered::computeForces(const double r, const double t1, const double t2,
 		                    double &f_r, double &f_t, double &f_o) {

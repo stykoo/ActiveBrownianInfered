@@ -13,8 +13,6 @@ class Infered {
 		                   double &f_r, double &f_t, double &f_o);
 
 	private:
-		//void loadCoeffs(std::string fname,
-		//		        std::vector<std::vector<double>> &coeffs);
 		void loadCoeffs(std::string fname, std::vector<double> &coeffs);
 		void computeRadialCompos(const double r);
 		void computeAngularCompos(const double t1, const double t2);
@@ -23,9 +21,6 @@ class Infered {
 		const long n_modes; //!< Number of angular modes
 		const long n_modes_tot; //!< Total number of angular modes
 
-		/*std::vector< std::vector<double> > coeffs_r; //!< Coefficients
-		std::vector< std::vector<double> > coeffs_t; //!< Coefficients
-		std::vector< std::vector<double> > coeffs_o; //!< Coefficients */
 		std::vector<double> coeffs_r; //!< Coefficients
 		std::vector<double> coeffs_t; //!< Coefficients
 		std::vector<double> coeffs_o; //!< Coefficients
