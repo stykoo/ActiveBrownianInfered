@@ -74,7 +74,7 @@ class State {
 		}
 		//! Get angle of particle i
 		const std::vector<double> & getAngles() const {
-			return angles;
+			return positions[2];
 		}
 
 		void dump() const; //!< Dump the positions and orientations
@@ -103,9 +103,8 @@ class State {
 		std::normal_distribution<double> noiseAngle;
 #endif
 
-		//! Positions of the particles
-		std::array<std::vector<double>, 2> positions;
-		std::vector<double> angles; //<! Angles
+		//! Positions of the particles and angles
+		std::array<std::vector<double>, 3> positions;
 		std::array<std::vector<double>, 3> forces;  //!< Internal forces
 };
 
@@ -121,13 +120,6 @@ template<typename T>
 void pbc(T &x, const T L){
 	x -= L * std::floor(x / L);
 }
-/*template<>
-void pbc<double>(double &x, const double L) {
-	// Trick to avoid floor
-	double a = x / L;
-	long i = (long) a;
-	x -= L * (i - (i > a));
-}*/
 
 #ifdef USE_MKL
 void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
@@ -162,20 +154,5 @@ inline void pbcSym<double>(double &x, const double L) {
 	double2int(i, d, int);
 	x -= L * i;
 }
-
-/*! 
- * \brief Periodic boundary conditions on a segment, with offset
- * 
- * Update x to be between 0 and L, and o to be the corresponding offset
- *
- * \param x Value
- * \param o Offset
- * \param L Length of the box
- */
-/*template<typename T, typename U>
-void pbcOffset(T &x, U &o, const T L) {
-	o = (U) std::floor(x / L);
-	x -= L * o;
-}*/
 
 #endif // ACTIVEBROWNIAN_STATE_H_
