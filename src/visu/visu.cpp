@@ -1,60 +1,23 @@
-/*
-Copyright (C) Sorbonne Université (2018)
-Contributor: Alexis Poncet <aponcet@lptmc.jussieu.fr>
-
-This file is part of ActiveBrownian.
-
-ActiveBrownian is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-ActiveBrownian is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
-*/
-/*!
- * \file simul.cpp
- * \author Alexis Poncet <aponcet@lptmc.jussieu.fr>
- * \brief Visualization of the system
- *
- * The system is visualized using the SFML library.
-*/
-
 #include <iostream>
 #include <cmath>
 #include "visu.h"
 
-/*!
- * \brief Constructor for visualization
- *
- * \param state Pointer to the state of the system
- * \param len Length of the box
- * \param n_parts Number of particles
- */
-Visu::Visu(const State *state, const double len, const long n_parts) :
-	state(state), len(len), n_parts(n_parts) {
+/* Constructor for visualization */
+Visu::Visu(const State *state, const double Lx, const double Ly,
+		   const long n_parts) :
+	state(state), Lx(Lx), Ly(Ly), n_parts(n_parts) {
 }
 
-/*!
- * \brief Thread for visualization.
- *
- * Open a window, draw the particles and update their
- * positions at a certain number of FPS while the simulation is runing.
- */
+/*  Thread for visualization. */
 void Visu::run() {
 	sf::VideoMode mode = sf::VideoMode::getDesktopMode();
 	const float windowSize = std::min(mode.width, mode.height) * 9 / 10;
 
     sf::RenderWindow window;
-    window.create(sf::VideoMode(windowSize, windowSize),
+    window.create(sf::VideoMode(windowSize, (int) (windowSize * Ly / Lx)),
 	              "Active Brownian Particles");
 
-	float scale = windowSize / len;
+	float scale = windowSize / Ly;
 	// We assume that the particles have diameter 1
     sf::CircleShape circle(scale / 2.0);
 	// Line for showing the orientation of the particles
@@ -105,14 +68,8 @@ void Visu::run() {
     }
 }
 
-/*!
- * \brief Associate a color to an angle
- *
- * Use HSV representation with H = angle in degrees, S = 1, V = 1
- * 
- * \param angle Angle between 0 and 2pi
- * \return SFML color
- */
+/* Associate a color to an angle
+ * Use HSV representation with H = angle in degrees, S = 1, V = 1 */
 sf::Color colorFromAngle(const double angle) {
 	const int hue = (int) (angle * 180. / M_PI);
 	const float sat = 1.0;

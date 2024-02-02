@@ -4,33 +4,21 @@
 #include <iostream>
 #include "state.h"
 
-/*!
- * \brief Constructor of State
- *
- * Initializes the state of the system: particles randomly placed in a 2d box.
- *
- * \param _len Length of the box
- * \param _n_parts Number of particles
- * \param _temperature Temperature
- * \param _rot_dif Rotational diffusivity
- * \param _activity Activity
- * \param _dt Timestep
- * \param _fac_boxes Factor for the boxes
- */
-State::State(const double _len, const long _n_parts,
-	         const double _temperature,
+/*Initialize the state of the system: particles randomly placed in a 2d box.*/
+State::State(const double _Lx, const double _Ly, const long _n_parts,
+	         const double _trans_dif,
 			 const double _rot_dif, const double _activity, const double _dt,
 			 Infered &_infered) :
-	len(_len), n_parts(_n_parts),
+	lengths({_Lx, _Ly, 2 * M_PI}), n_parts(_n_parts),
 	activity(_activity), dt(_dt), infered(_infered),
 #ifdef USE_MKL
-	stddev_temp(std::sqrt(2.0 * _temperature * dt)),
+	stddev_temp(std::sqrt(2.0 * _trans_dif * dt)),
 	stddev_rot(std::sqrt(2.0 * _rot_dif * dt))
 #else
 	// We seed the RNG with the current time
 	rng(std::chrono::system_clock::now().time_since_epoch().count()),
-	// Gaussian noise from the temperature
-	noiseTemp(0.0, std::sqrt(2.0 * _temperature * dt)),
+	// Gaussian noise from the translational diffusivity
+	noiseTemp(0.0, std::sqrt(2.0 * _trans_dif * dt)),
 	// Gaussian noise from the rotational diffusivity
 	noiseAngle(0.0, std::sqrt(2.0 * _rot_dif * dt))
 #endif
@@ -41,58 +29,56 @@ State::State(const double _len, const long _n_parts,
 	}
 
 #ifdef USE_MKL
-	aux_x.resize(n_parts);
-	aux_y.resize(n_parts);
-	aux_angle.resize(n_parts);
+	for (int k = 0 ; k < 3 ; ++k) {
+		aux[k].resize(n_parts);
+	}
 
 	vslNewStream(&stream, VSL_BRNG_SFMT19937,
 			std::chrono::system_clock::now().time_since_epoch().count());
-	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
-			     positions[0].data(), 0, len);
-	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
-			     positions[1].data(), 0, len);
-	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
-			     positions[2].data(), 0, 2.0 * M_PI);
+	for (int i = 0 ; i < 3 ; ++i) {
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream, n_parts,
+					 positions[i].data(), 0, lengths[i]);
+	}
 #else
-    std::uniform_real_distribution<double> rndPos(0, len);
-    std::uniform_real_distribution<double> rndAngle(0, 2.0 * M_PI);
+    std::uniform_real_distribution<double> rndPosX(0, lengths[0]);
+    std::uniform_real_distribution<double> rndPosY(0, lengths[1]);
+    std::uniform_real_distribution<double> rndAngle(0, lengths[2]);
 
 	for (long i = 0 ; i < n_parts ; ++i) {
-		positions[0][i] = rndPos(rng);
-		positions[1][i] = rndPos(rng);
+		positions[0][i] = rndPosX(rng);
+		positions[1][i] = rndPosY(rng);
 		positions[2][i] = rndAngle(rng);
-		forces[0][i] = 0;
-		forces[1][i] = 0;
 	}
 #endif
 }
 
-/*!
- * \brief Do one time step
- *
- * Evolve the system for one time step according to coupled Langevin equation.
- */
+/* Evolve the system according to coupled Langevin equations. */
 void State::evolve() {
 	calcInternalForces();
 
 #ifdef USE_MKL
-	vdSinCos(n_parts, positions[2].data(), aux_y.data(), aux_x.data());
+	vdSinCos(n_parts, positions[2].data(), aux[1].data(), aux[0].data());
 	// Activity and forces
-	cblas_daxpy(n_parts, activity, aux_x.data(), 1, forces[0].data(), 1);
-	cblas_daxpy(n_parts, activity, aux_y.data(), 1, forces[1].data(), 1);
-	cblas_daxpy(n_parts, dt, forces[0].data(), 1, positions[0].data(), 1);
-	cblas_daxpy(n_parts, dt, forces[1].data(), 1, positions[1].data(), 1);
-	cblas_daxpy(n_parts, dt, forces[2].data(), 1, positions[2].data(), 1);
+	cblas_daxpy(n_parts, activity, aux[0].data(), 1, forces[0].data(), 1);
+	cblas_daxpy(n_parts, activity, aux[0].data(), 1, forces[1].data(), 1);
+	for (int k = 0 ; k < 3 ; ++k) {
+		cblas_daxpy(n_parts, dt, forces[k].data(), 1, positions[k].data(), 1);
+	}
 	// Diffusion and rotational diffusion
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
-			      aux_x.data(), 0, stddev_temp);
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
-			      aux_y.data(), 0, stddev_temp);
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
-			      aux_angle.data(), 0, stddev_rot);
-	vdAdd(n_parts, positions[0].data(), aux_x.data(), positions[0].data());
-	vdAdd(n_parts, positions[1].data(), aux_y.data(), positions[1].data());
-	vdAdd(n_parts, positions[2].data(), aux_angle.data(), positions[2].data());
+	if (stddev_temp > 0.) {
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+					  aux[0].data(), 0, stddev_temp);
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+					  aux[1].data(), 0, stddev_temp);
+	}
+	if (stddev_rot > 0.) {
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, n_parts,
+					  aux[2].data(), 0, stddev_rot);
+	}
+	for (int k = 0 ; k < 3 ; ++k) {
+		vdAdd(n_parts, positions[k].data(), aux[k].data(),
+			  positions[k].data());
+	}
 #else
 	double c, s;
 	for (long i = 0 ; i < n_parts ; ++i) {
@@ -117,10 +103,7 @@ void State::evolve() {
 	enforcePBC();
 }
 
-/* \brief Compute the forces between the particles.
- *
- * Implement harmonic spheres.
- */
+/* Compute the forces between the particles. */
 void State::calcInternalForces() {
     for (long i = 0 ; i < n_parts ; ++i) {
 		forces[0][i] = 0;
@@ -142,8 +125,8 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	double dy = positions[1][i] - positions[1][j];
 
 	// We want the periodized interval to be centered on 0
-	pbcSym(dx, len);
-	pbcSym(dy, len);
+	pbcSym(dx, lengths[0]);
+	pbcSym(dy, lengths[1]);
 	double dr = std::sqrt(dx * dx + dy * dy);
 	double c = dx / dr;
 	double s = dy / dr;
@@ -156,23 +139,20 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	forces[2][i] += fo;
 }
 
-/* 
- * \brief Enforce periodic boundary conditions
- */
+/* Enforce periodic boundary conditions */
 void State::enforcePBC() {
+	for (int k = 0 ; k < 3 ; ++k) {
 #ifdef USE_MKL
-	pbcMKL(positions[0], len, aux_x, n_parts);
-	pbcMKL(positions[1], len, aux_y, n_parts);
-	pbcMKL(positions[2], 2.0 * M_PI, aux_angle, n_parts);
+		pbcMKL(positions[k], lengths[k], aux[k], n_parts);
 #else
-	for (long i = 0 ; i < n_parts ; ++i) {
-		pbc(positions[0][i], len);
-		pbc(positions[1][i], len);
-		pbc(positions[2][i], 2.0 * M_PI);
-	}
+		for (long i = 0 ; i < n_parts ; ++i) {
+			pbc(positions[k][i], lengths[k]);
+		}
 #endif
+	}
 }
 
+/* Store positions and angles into 'out' */
 void State::store(std::vector<double> &out) const {
 	out.reserve(3 * n_parts);
 	for (int i = 0 ; i < 3 ; ++i) {

@@ -61,10 +61,10 @@ Simul::Simul(std::string fname) {
 	n_frames_correl = 0;
 	correls.assign(n_div * n_div, 0);
 
-	for (int i = 0 ; i < 5 ; ++i) {
+	/*for (int i = 0 ; i < 5 ; ++i) {
 		trajectories.emplace_back();
 		trajectories.back().assign(3 * n_parts, (double) i);
-	}
+	}*/
 
 #ifndef NOVISU
 	sleep = 100;
@@ -167,12 +167,12 @@ void Simul::run() {
 	}
 	
 	// Initialize the state of the system
-	State state(len, n_parts, temperature, rot_dif, activity,
+	State state(Lx, Ly, n_parts, trans_dif, rot_dif, activity,
 				dt, *infered);
 	
 #ifndef NOVISU
 	// Start thread for visualization
-	Visu visu(&state, len, n_parts);
+	Visu visu(&state, Lx, Ly, n_parts);
 	std::thread thVisu(&Visu::run, &visu); 
 #endif
 
@@ -182,10 +182,14 @@ void Simul::run() {
 	}
 	// Time evolution
 	for (long t = 0 ; t < n_iters ; ++t) {
-		state.evolve();
+		std::cout << " t = " << t << "\r" << std::flush;
 		if (t % skip == 0) {
+			// Compute correlations
 			addCorrelations(&state);
+			// Save trajectories
+			state.store(trajectories.emplace_back());
 		}
+		state.evolve();
 #ifndef NOVISU
 		if (sleep > 0) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));

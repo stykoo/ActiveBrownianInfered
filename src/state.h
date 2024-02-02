@@ -15,14 +15,13 @@
 // 2^(1/6)
 #define TWOONESIXTH 1.12246204830937298143 
 
-
 /*!  Class for the state of the system */
 class State {
 	public:
 		//! Constructor of State
-		State(const double _len, const long _n_parts, const double _temperature,
-			  const double _rot_dif, const double _activity, const double _dt,
-			  Infered &_infered);
+		State(const double _Lx, const double _Ly, const long _n_parts,
+			  const double _trans_dif, const double _rot_dif,
+			  const double _activity, const double _dt, Infered &_infered);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -51,7 +50,7 @@ class State {
 		void calcInferedForceIJ(const long i, const long j);
 		void enforcePBC(); //!< Enforce periodic boundary conditions
 
-		const double len; //!< Length of the box
+		const std::array<double, 3> lengths;
 		const long n_parts; //!< Number of particles
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
@@ -60,10 +59,10 @@ class State {
 #ifdef USE_MKL
 		double stddev_temp, stddev_rot;
 		VSLStreamStatePtr stream;
-		std::vector<double> aux_x, aux_y, aux_angle;
+		std::array<std::vector<double>, 3> aux;
 #else
 		std::mt19937 rng; //!< Random number generator
-		//! Gaussian noise for temperature
+		//! Gaussian noise for translational diffusivity
 		std::normal_distribution<double> noiseTemp;
 		//! Gaussian noise for angle
 		std::normal_distribution<double> noiseAngle;
@@ -71,14 +70,9 @@ class State {
 
 		//! Positions of the particles and angles
 		std::array<std::vector<double>, 3> positions;
-		std::array<std::vector<double>, 3> forces;  //!< Internal forces
+  		//!< Internal forces
+		std::array<std::vector<double>, 3> forces;
 };
-
-/* Periodic boundary conditions on a segment */
-template<typename T>
-void pbc(T &x, const T L){
-	x -= L * std::floor(x / L);
-}
 
 #ifdef USE_MKL
 void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
@@ -86,6 +80,12 @@ void pbcMKL(std::vector<double> &v, const double L, std::vector<double> &aux,
 void pbcSymMKL(std::vector<double> &v, const double L,
 		       std::vector<double> &aux, const long N);
 #endif
+
+/* Periodic boundary conditions on a segment */
+template<typename T>
+void pbc(T &x, const T L){
+	x -= L * std::floor(x / L);
+}
 
 /* Periodic boundary conditions on a segment (symmetric) */
 template<typename T>

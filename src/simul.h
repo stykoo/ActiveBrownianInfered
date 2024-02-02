@@ -71,19 +71,9 @@ class Simul {
 		long n_frames_correl;
 		std::vector<long long> correls; //!< Correlations
 
-		// OLD
-		std::string output;
-		double rho; //!< Density
-		double temperature; //!< Temperature
-		std::string fname_infered; //!< Filename for infered coefficients
-		double step_r; //!< Spatial resolution for correlations
-		int n_modes; //! Number of angular modes
-		long n_div_angle; //!< Number of angular points for correlations
 #ifndef NOVISU
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 #endif
-		double len; //!< Length of the box
-
 };
 
 /* Load attribute from HDF5 file or group. */
