@@ -3,10 +3,12 @@
 
 #include <array>
 #include <vector>
+#include <deque>
 #include <string>
 #include <iostream>
 #include "H5Cpp.h"
 #include "infered.h"
+#include "state.h"
 
 #define N_DIV_ANGLE 50 // Number of angular divisions
 
@@ -32,16 +34,17 @@ class Simul {
 	private:
 		void loadKs(H5::H5File &file);
 		void loadCoeffs(H5::H5File &file);
+		void addCorrelations(const State *state);
 		void writeKs(H5::H5File &file);
 		void writeCoeffs(H5::H5File &file);
 		void computeAndWriteForces(H5::H5File &file);
-		void writePositions(H5::H5File &file);
+		void writeTrajectories(H5::H5File &file);
 		void writeCorrelations(H5::H5File &file);
 
 		// NEW
 		SimulInitStatus status; //!< Status after initialization
 								
-		long Lx, Ly; //!< Size of the box
+		double Lx, Ly; //!< Size of the box
 		long n_parts; //!< Number of particles
 		double diam; //!< Particle diameter
 		double activity; //!< Activity
@@ -58,7 +61,15 @@ class Simul {
 		std::array<std::vector<int>, 2> ks; //!< Factors for cos / sin
 		std::array<std::vector<double>, 3> coeffs; //!< Infered coefficients
 		
-		Infered *infered;
+		Infered *infered; // Inference
+
+		std::deque<std::vector<double>> trajectories;
+
+		// Stuff for correlations
+		double xmax;
+		long n_div;
+		long n_frames_correl;
+		std::vector<long long> correls; //!< Correlations
 
 		// OLD
 		std::string output;

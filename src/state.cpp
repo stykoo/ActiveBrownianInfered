@@ -173,6 +173,13 @@ void State::enforcePBC() {
 #endif
 }
 
+void State::store(std::vector<double> &out) const {
+	out.reserve(3 * n_parts);
+	for (int i = 0 ; i < 3 ; ++i) {
+		out.insert(out.end(), positions[i].begin(), positions[i].end());
+	}
+}
+
 void State::dump() const {
 	for (long i = 0 ; i < n_parts ; ++i) {
 		std::cout << positions[0][i] << " "

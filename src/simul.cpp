@@ -1,7 +1,6 @@
 #include <string>
 #include <exception>
 #include <cassert>
-#include "observables.h"
 #include "simul.h"
 #include "state.h"
 
@@ -53,10 +52,22 @@ Simul::Simul(std::string fname) {
 
 	// Structure for computation of infered interactions
 	infered = new Infered(ks, coeffs, r0);
+	
+	// For correlations
+	xmax = n_funs * r0;
+	long n_div_pos = (long) xmax / dx;
+	xmax = dx * n_div_pos;
+	n_div = 2 * n_div_pos;
+	n_frames_correl = 0;
+	correls.assign(n_div * n_div, 0);
 
-	// OLD
+	for (int i = 0 ; i < 5 ; ++i) {
+		trajectories.emplace_back();
+		trajectories.back().assign(3 * n_parts, (double) i);
+	}
+
 #ifndef NOVISU
-	sleep = 1000;
+	sleep = 100;
 #endif
 }
 
@@ -158,8 +169,6 @@ void Simul::run() {
 	// Initialize the state of the system
 	State state(len, n_parts, temperature, rot_dif, activity,
 				dt, *infered);
-	Observables obs(len, n_parts, step_r, n_div_angle);
-	obs.computeForces(*infered);
 	
 #ifndef NOVISU
 	// Start thread for visualization
@@ -175,7 +184,7 @@ void Simul::run() {
 	for (long t = 0 ; t < n_iters ; ++t) {
 		state.evolve();
 		if (t % skip == 0) {
-			obs.compute(&state);
+			addCorrelations(&state);
 		}
 #ifndef NOVISU
 		if (sleep > 0) {
@@ -184,11 +193,84 @@ void Simul::run() {
 #endif
 	}
 
-	obs.writeH5(output, rho, n_parts, temperature, rot_dif,
-				activity, dt, n_iters, n_iters_th, skip);
 #ifndef NOVISU
 		thVisu.join();
 #endif
+}
+
+/* Add data to the correlations (at current time) */
+void Simul::addCorrelations(const State *state) {
+	n_frames_correl++;
+
+	const auto& pos_x = state->getPosX();
+	const auto& pos_y = state->getPosY();
+	const auto& angles = state->getAngles();
+
+	// Non-MKL version
+	// For each pair of particles
+	for (long i = 0 ; i < n_parts ; ++i) {
+		for (long j = i + 1 ; j < n_parts ; ++j) {
+			double x = pos_x[j] - pos_x[i];
+			double y = pos_y[j] - pos_y[i];
+			pbcSym(x, Lx);
+			pbcSym(y, Ly);
+			double r = std::sqrt(x * x + y * y);
+			if (r >= xmax) { // Get rid of the points too far away
+				continue;
+			}
+
+			double phi = std::atan2(y, x);
+			double theta1 = angles[j] - phi;
+
+			double xr = std::cos(theta1) * r;
+			double yr = std::sin(theta1) * r;
+			size_t b1 = (size_t) ((xmax + xr) / dx);
+			size_t b2 = (size_t) ((xmax + yr) / dx);
+			correls[b1 * n_div + b2]++; // Add 1 in the right box
+		}
+	}
+
+/*
+	// MKL version
+	long k = 0;
+	for (long i = 0 ; i < n_parts ; ++i) {
+		for (long j = i + 1 ; j < n_parts ; ++j) {
+			dxs[k] = pos_x[j] - pos_x[i];
+			dys[k] = pos_y[j] - pos_y[i];
+			thetas1[k] = angles[j];
+			++k;
+		}
+	}
+
+	pbcSymMKL(dxs, len, phis, n_pairs);
+	pbcSymMKL(dys, len, phis, n_pairs);
+	// Computation of phis
+	vdAtan2(n_pairs, dys.data(), dxs.data(), phis.data());
+	// Computation of drs
+	vdSqr(n_pairs, dxs.data(), dxs.data());
+	vdSqr(n_pairs, dys.data(), dys.data());
+	vdAdd(n_pairs, dxs.data(), dys.data(), drs.data());
+	vdSqrt(n_pairs, drs.data(), drs.data());
+	cblas_dscal(n_pairs, scal_r, drs.data(), 1); // Scaling
+	// Computation of thetas1
+	cblas_daxpy(n_pairs, -1.0, phis.data(), 1, thetas1.data(), 1);
+	// r cos(theta1), r sin(theta1)
+	vdSinCos(n_pairs, thetas1.data(), dys.data(), dxs.data());
+	vdMul(n_pairs, dxs.data(), drs.data(), dxs.data());
+	vdMul(n_pairs, dys.data(), drs.data(), dys.data());
+	pbcMKL(dxs, n_div_r, phis, n_pairs);
+	pbcMKL(dys, n_div_r, phis, n_pairs);
+
+	double rmax = len * scal_r / 2;
+	for (long k = 0 ; k < n_pairs ; ++k) {
+		if (drs[k] >= rmax) { // Get rid of the points too far away
+			continue;
+		}
+		size_t b1 = (size_t) dxs[k];
+		size_t b2 = (size_t) dys[k];
+		correls[b1 * n_div_r + b2]++; // Add 1 in the right box
+	}
+*/
 }
 
 /* Save the simulation */
@@ -197,8 +279,8 @@ void Simul::save(std::string fname) {
 	try {
 		H5::H5File file(fname, H5F_ACC_TRUNC);
 
-		writeAttribute(&file, H5::PredType::NATIVE_LONG, &Lx, "Lx");
-		writeAttribute(&file, H5::PredType::NATIVE_LONG, &Ly, "Ly");
+		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &Lx, "Lx");
+		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &Ly, "Ly");
 		writeAttribute(&file, H5::PredType::NATIVE_LONG, &n_parts, "N");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &diam, "d");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &activity, "U");
@@ -215,7 +297,7 @@ void Simul::save(std::string fname) {
 		writeKs(file);
 		writeCoeffs(file);
 		computeAndWriteForces(file);
-		writePositions(file);
+		writeTrajectories(file);
 		writeCorrelations(file);
 	} catch (H5::Exception& err) {
         err.printErrorStack();
@@ -332,8 +414,70 @@ void Simul::computeAndWriteForces(H5::H5File &file) {
 	}
 }
 
-void Simul::writePositions(H5::H5File &file) {
+void Simul::writeTrajectories(H5::H5File &file) {
+	H5::Group group = file.createGroup("/trajectories");
+
+	double dt_traj = skip * dt;
+	writeAttribute(&group, H5::PredType::NATIVE_DOUBLE, &dt_traj,
+			       "dt");
+
+	// Correlations
+	size_t n_frames = trajectories.size();
+	hsize_t dims[3] = {n_frames, 3, (hsize_t) n_parts};
+	H5::DataSpace dspace(3, dims);
+	
+	hsize_t chunk_dims[3] = {1, 1, (hsize_t) n_parts};
+	H5::DSetCreatPropList plist;
+	plist.setDeflate(6);
+	plist.setChunk(3, chunk_dims);
+
+	H5::DataSet dset = \
+		file.createDataSet("trajectories/traj", H5::PredType::NATIVE_DOUBLE,
+						   dspace, plist);
+
+	H5::DataSpace memspace(2, &dims[1]);
+	hsize_t dataCount[3] = {1, dims[1], dims[2]};
+	hsize_t dataOffset[3] = {0, 0, 0};
+
+	for (size_t i = 0 ; i < n_frames ; ++i) {
+		dataOffset[0] = i;
+		dspace.selectHyperslab(H5S_SELECT_SET, dataCount, dataOffset);
+		dset.write(trajectories[i].data(), H5::PredType::NATIVE_DOUBLE,
+				   memspace, dspace);
+	}
 }
 
 void Simul::writeCorrelations(H5::H5File &file) {
+	// New group
+	H5::Group group = file.createGroup("/correlations");
+
+	writeAttribute(&group, H5::PredType::NATIVE_LONG, &n_frames_correl,
+			       "n_frames");
+
+	// Edges of boxes
+	std::vector<double> xedges(n_div+1);
+	for (long i = 0 ; i <= n_div ; ++i) {
+		xedges[i] = -xmax + i * dx;
+	}
+
+	hsize_t dims_x[1] = {(hsize_t) n_div,};
+	H5::DataSpace dspace_x(1, dims_x);
+	H5::DataSet dset_r = file.createDataSet("correlations/x_edges",
+			                                H5::PredType::NATIVE_DOUBLE,
+						  				    dspace_x);
+	dset_r.write(xedges.data(), H5::PredType::NATIVE_DOUBLE);
+
+	// Correlations
+	hsize_t dims[2] = {(hsize_t) n_div, (hsize_t) n_div};
+	H5::DataSpace dspace(2, dims);
+	
+	hsize_t chunk_dims[2] = {1, (hsize_t) std::min(1000l, n_div)};
+	H5::DSetCreatPropList plist;
+	plist.setDeflate(6);
+	plist.setChunk(2, chunk_dims);
+
+	H5::DataSet dset = \
+		file.createDataSet("correlations/correl", H5::PredType::NATIVE_LLONG,
+						   dspace, plist);
+	dset.write(correls.data(), H5::PredType::NATIVE_LLONG);
 }

@@ -43,8 +43,8 @@ class State {
 			return positions[2];
 		}
 
+		void store(std::vector<double> &out) const; //!< Store positions
 		void dump() const; //!< Dump the positions and orientations
-
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces
