@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 PROJECT(ActiveBrownian)
 
@@ -22,7 +22,6 @@ set(CMAKE_CXX_STANDARD 14)
 # Packages needed
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 find_package(HDF5 REQUIRED COMPONENTS C CXX)
-find_package(Boost REQUIRED COMPONENTS program_options)
 # If any of these is not found, only the novisu executable will be compiled
 find_package(Threads REQUIRED)
 find_package(SFML COMPONENTS system window graphics)
@@ -59,7 +58,6 @@ if(DEFINED CMAKE_THREAD_LIBS_INIT AND ${SFML_FOUND})
 	target_link_libraries(
 		${EXECUTABLE_NAME}
 		${HDF5_LIBRARIES}
-		${Boost_LIBRARIES}
 		${CMAKE_THREAD_LIBS_INIT}
 		${SFML_LIBRARIES}
 	)
@@ -93,5 +91,4 @@ endif()
 target_link_libraries(
 	${EXECUTABLE_NAME_NOVISU}
 	${HDF5_LIBRARIES}
-	${Boost_LIBRARIES}
 )

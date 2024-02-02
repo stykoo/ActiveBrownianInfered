@@ -1,30 +1,3 @@
-/*
-Copyright (C) Sorbonne Université (2018)
-Contributor: Alexis Poncet <aponcet@lptmc.jussieu.fr>
-
-This file is part of ActiveBrownian.
-
-ActiveBrownian is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-ActiveBrownian is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
-*/
-/*!
- * \file observables.h
- * \author Alexis Poncet <aponcet@lptmc.jussieu.fr>
- * \brief Computation and export of the observables
- *
- * Header file for observables.cpp.
-*/
-
 #ifndef ACTIVEBROWNIAN_OBSERVABLES_H
 #define ACTIVEBROWNIAN_OBSERVABLES_H
 
@@ -55,6 +28,8 @@ class Observables {
 		const double step_angle; //!< Step for angular divisions
 		long n_div_r; //!< Number of divisions in x
 		long n_div_tot; //!< Total number of divisions
+		
+		std::vector<long long> forces_r, forces_t, forces_o;
 
 #ifdef USE_MKL
 		const long n_pairs;
@@ -64,7 +39,7 @@ class Observables {
 
 		long n_calls; //!< Number of calls of 'compute'
 		std::vector<long long> correls; //!< Correlations
-		std::vector<double> forces_r, forces_t, forces_o; 
+		std::array<std::vector<double>, 3> forces; 
 };
 
 #endif // ACTIVEBROWNIAN_OBSERVABLES_H

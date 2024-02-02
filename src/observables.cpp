@@ -1,39 +1,10 @@
-/*
-Copyright (C) Sorbonne Université (2018)
-Contributor: Alexis Poncet <aponcet@lptmc.jussieu.fr>
-
-This file is part of ActiveBrownian.
-
-ActiveBrownian is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-ActiveBrownian is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
-*/
-/*!
- * \file observables.cpp
- * \author Alexis Poncet <aponcet@lptmc.jussieu.fr>
- * \brief Computation and export of the observables
-*/
-
 #include <iostream>
 //#include <cassert>
 #include <cmath>
 #include "H5Cpp.h"
 #include "observables.h"
 
-/*
- * \brief Constructor of Observables
- *
- * Initialize the vector for correlations.
- */
+/* Constructor of Observables.  */
 Observables::Observables(const double len_, const long n_parts_,
 		                 const double step_r_, const long n_div_angle_) :
 		len(len_), n_parts(n_parts_), step_r(step_r_),
@@ -57,9 +28,7 @@ Observables::Observables(const double len_, const long n_parts_,
 }
 
 
-/*
- * \brief Compute the observables for a given state
- */
+/* Compute the observables for a given state */
 void Observables::compute(const State *state) {
 	const std::vector<double> & pos_x = state->getPosX();
 	const std::vector<double> & pos_y = state->getPosY();
@@ -158,9 +127,7 @@ void Observables::computeForces(Infered &infered) {
 	}
 }
 
-/*
- * \brief Export the observables to a hdf5 file
- */
+/* Export the observables to a hdf5 file */
 void Observables::writeH5(const std::string fname, double rho, long n_parts,
 				          double temperature, double rot_dif,
 						  double activity, double dt,
