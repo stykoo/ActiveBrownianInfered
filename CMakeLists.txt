@@ -8,7 +8,7 @@ set(EXECUTABLE_NAME_NOVISU "ActiveBrownian_novisu")
 
 # Build in release mode by default
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_BUILD_TYPE Debug)
 endif()
 set(EXECUTABLE_OUTPUT_PATH bin/${CMAKE_BUILD_TYPE})
 

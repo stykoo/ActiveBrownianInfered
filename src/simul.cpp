@@ -22,6 +22,7 @@ Simul::Simul(std::string fname) {
 		loadAttribute(&file, &activity, "U");
 		loadAttribute(&file, &trans_dif, "Dt");
 		loadAttribute(&file, &rot_dif, "Dr");
+		loadAttribute(&file, &pot_strength, "pot_strength");
 		loadAttribute(&file, &dt, "dt");
 		loadAttribute(&file, &n_iters, "niters");
 		loadAttribute(&file, &n_iters_th, "niters_th");
@@ -167,12 +168,12 @@ void Simul::run() {
 	}
 	
 	// Initialize the state of the system
-	State state(Lx, Ly, n_parts, trans_dif, rot_dif, activity,
-				dt, *infered);
+	State state(Lx, Ly, n_parts, diam, trans_dif, rot_dif, activity,
+				dt, pot_strength, *infered);
 	
 #ifndef NOVISU
 	// Start thread for visualization
-	Visu visu(&state, Lx, Ly, n_parts);
+	Visu visu(&state, Lx, Ly, n_parts, diam / 2.);
 	std::thread thVisu(&Visu::run, &visu); 
 #endif
 
@@ -182,7 +183,7 @@ void Simul::run() {
 	}
 	// Time evolution
 	for (long t = 0 ; t < n_iters ; ++t) {
-		std::cout << " t = " << t << "\r" << std::flush;
+		std::cout << " t = " << t * dt << "\r" << std::flush;
 		if (t % skip == 0) {
 			// Compute correlations
 			addCorrelations(&state);
@@ -191,9 +192,7 @@ void Simul::run() {
 		}
 		state.evolve();
 #ifndef NOVISU
-		if (sleep > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP));
 #endif
 	}
 

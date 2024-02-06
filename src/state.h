@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include "infered.h"
+#include "boxes.h"
 
 #ifdef USE_MKL
 	#include "mkl.h"
@@ -20,8 +21,9 @@ class State {
 	public:
 		//! Constructor of State
 		State(const double _Lx, const double _Ly, const long _n_parts,
-			  const double _trans_dif, const double _rot_dif,
-			  const double _activity, const double _dt, Infered &_infered);
+			  const double _diam, const double _trans_dif,
+			  const double _rot_dif, const double _activity, const double _dt,
+			  const double _pot_strength, Infered &_infered);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -47,17 +49,21 @@ class State {
 
 	private:
 		void calcInternalForces(); //!< Compute internal forces
+		void calcSoftForceIJ(const long i, const long j);
 		void calcInferedForceIJ(const long i, const long j);
 		void enforcePBC(); //!< Enforce periodic boundary conditions
 
 		const std::array<double, 3> lengths;
 		const long n_parts; //!< Number of particles
+		double diam; //!< Particle diameter
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
+		const double pot_strength; //!< Strength of the repulsive potential
 		Infered &infered; //!< Structure for inference
+		Boxes boxes; //!< Structure for boxes
 
 #ifdef USE_MKL
-		double stddev_temp, stddev_rot;
+		std::array<double, 3> stddevs;
 		VSLStreamStatePtr stream;
 		std::array<std::vector<double>, 3> aux;
 #else
@@ -93,6 +99,7 @@ inline void pbcSym(T &x, const T L) {
 	x -= L * std::round(x / L);
 }
 
+/*
 // Trick to avoid round ASSUMING LITTLE ENDIAN
 union i_cast {double d; int i[2];};
 #define double2int(i, d, t)  \
@@ -106,5 +113,6 @@ inline void pbcSym<double>(double &x, const double L) {
 	double2int(i, d, int);
 	x -= L * i;
 }
+*/
 
 #endif // ACTIVEBROWNIAN_STATE_H_

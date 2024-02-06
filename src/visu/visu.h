@@ -7,7 +7,7 @@
 class Visu {
 	public:
 		Visu(const State *state, const double Lx, const double Ly,
-			 const long n_parts);
+			 const long n_parts, const double r);
 		void run();
 
 	private:
@@ -16,6 +16,7 @@ class Visu {
 		const State *state; //!< Pointer to the state of the system
 		const double Lx, Ly; //!< Lengths of the box
 		const long n_parts; //!< Number of particles
+		const double r; //!< Radius of particles
 };
 
 sf::Color colorFromAngle(const double angle);

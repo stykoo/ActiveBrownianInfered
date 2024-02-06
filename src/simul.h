@@ -10,6 +10,7 @@
 #include "infered.h"
 #include "state.h"
 
+#define SLEEP 100 // Number of milliseconds before updating visualization
 #define N_DIV_ANGLE 50 // Number of angular divisions
 
 //! State of the simulation after initialization
@@ -51,6 +52,7 @@ class Simul {
 		double trans_dif; //!< Translational diffusivity
 		double rot_dif; //!< Rotational diffusivity
 		double dt; //!< Timestep
+		double pot_strength; //!< Stength of repulsive potential
 		long n_iters; //!< Number of time iterations
 		long n_iters_th; //!< Number of time iterations of thermalization
 		long skip; //!< Iterations between two computation of observables
