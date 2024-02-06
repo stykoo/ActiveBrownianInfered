@@ -10,7 +10,7 @@
 #include "infered.h"
 #include "state.h"
 
-#define SLEEP 100 // Number of milliseconds before updating visualization
+#define SLEEP 10 // Number of milliseconds before updating visualization
 #define N_DIV_ANGLE 50 // Number of angular divisions
 
 //! State of the simulation after initialization

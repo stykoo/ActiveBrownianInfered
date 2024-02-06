@@ -178,11 +178,14 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	pbcSym(dx, lengths[0]);
 	pbcSym(dy, lengths[1]);
 	double dr = std::sqrt(dx * dx + dy * dy);
+	double alpha = std::atan2(dy, dx);
 	double c = dx / dr;
 	double s = dy / dr;
+	double t1 = positions[2][i] - alpha;
+	double t2 = positions[2][j] - alpha;
 
 	double fr, ft, fo;
-	infered.computeForces(dr, positions[2][i], positions[2][j], fr, ft, fo);
+	infered.computeForces(dr, t1, t2, fr, ft, fo);
 
 	forces[0][i] += fr * c - ft * s;
 	forces[1][i] += fr * s + ft * c;
