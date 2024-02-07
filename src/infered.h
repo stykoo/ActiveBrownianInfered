@@ -14,7 +14,7 @@ class Infered {
 		                   double &f_r, double &f_t, double &f_o);
 
 	private:
-		void computeRadialCompos(const double r);
+		void computeRadialCompos(double r);
 
 		const std::array<std::vector<int>, 2> &ks; //!< Factors for cos/sin
 		const std::array<std::vector<double>, 3> &coeffs;  //!< Coefficients
@@ -26,6 +26,9 @@ class Infered {
 		std::vector<double> angles;
 		std::vector<double> aux_cos;
 		std::vector<double> aux_sin;
+#ifdef USE_MKL
+		std::vector<double> aux;
+#endif
 };
 
 #endif

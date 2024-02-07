@@ -113,7 +113,6 @@ void Simul::loadCoeffs(H5::H5File &file) {
 	assert(rank == 3 && dims[0] == 3 && dims[1] == (hsize_t) n_modes_tot);
 
 	n_funs = dims[2];
-	std::cout << n_funs << "\n";
 
 	hsize_t dimsm[2] = {dims[1], dims[2]};
 	H5::DataSpace memspace(2, dimsm);
@@ -183,7 +182,9 @@ void Simul::run() {
 	}
 	// Time evolution
 	for (long t = 0 ; t < n_iters ; ++t) {
+#ifndef NOVISU
 		std::cout << " t = " << t * dt << "\r" << std::flush;
+#endif
 		if (t % skip == 0) {
 			// Compute correlations
 			addCorrelations(&state);

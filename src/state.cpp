@@ -177,6 +177,12 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	// We want the periodized interval to be centered on 0
 	pbcSym(dx, lengths[0]);
 	pbcSym(dy, lengths[1]);
+/*#ifdef USE_MKL
+	double dr, alpha;
+	dr = dx * dx + dy * dy;
+	vdSqrt(1, &dr, &dr);
+	vdAtan2(1, &dy, &dx, &alpha); // Not that faster than std::atan2
+#else*/
 	double dr = std::sqrt(dx * dx + dy * dy);
 	double alpha = std::atan2(dy, dx);
 	double c = dx / dr;
