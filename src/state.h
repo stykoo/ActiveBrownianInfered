@@ -60,6 +60,7 @@ class State {
 		const double activity; //!< Activity
 		const double dt; //!< Timestep
 		const double pot_strength; //!< Strength of the repulsive potential
+		const double rmax; //!< Cut-off for infered forces
 		Infered &infered; //!< Structure for inference
 		Boxes boxes_r; //!< Boxes for repulsive interactions
 		Boxes boxes_i; //!< Boxes for infered interactions

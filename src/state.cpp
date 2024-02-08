@@ -16,6 +16,7 @@ State::State(const double _Lx, const double _Ly, const long _n_parts,
 	activity(_activity),
 	dt(_dt),
 	pot_strength(_pot_strength),
+	rmax(_rmax),
 	infered(_infered),
 	boxes_r(_Lx, _Ly, _n_parts, _diam),
 	boxes_i(_Lx, _Ly, _n_parts, _rmax),
@@ -113,13 +114,26 @@ void State::evolve() {
 void State::calcInternalForces() {
     /*for (long i = 0 ; i < n_parts ; ++i)
 		for (long j = 0 ; j < i ; ++j)
-			calcSoftForceIJ(i, j);*/
+			calcSoftForceIJ(i, j);
+
+    for (long i = 0 ; i < n_parts ; ++i) {
+		for (long j = 0 ; j < n_parts ; ++j) {
+			if (i != j) {
+				calcInferedForceIJ(i, j);
+			}
+		}
+	}*/
 
 	// Recompute the boxes
 	boxes_r.update(positions[0], positions[1]);
 	const long n_boxes_r = boxes_r.getNBoxes();
 	const auto &nbrs_pos_r = boxes_r.getNbrsPos();
 	const auto &parts_of_box_r = boxes_r.getPartsOfBox();
+
+	boxes_i.update(positions[0], positions[1]);
+	const long n_boxes_i = boxes_i.getNBoxes();
+	const auto &nbrs_pos_i = boxes_i.getNbrsPos();
+	const auto &parts_of_box_i = boxes_i.getPartsOfBox();
 
 	// Repulsive forces (with boxes)
 	for (long b1 = 0 ; b1 < n_boxes_r ; ++b1) {
@@ -140,20 +154,6 @@ void State::calcInternalForces() {
 		}
 	}
 
-    /*for (long i = 0 ; i < n_parts ; ++i) {
-		for (long j = 0 ; j < n_parts ; ++j) {
-			if (i != j) {
-				calcInferedForceIJ(i, j);
-			}
-		}
-	}*/
-
-	// Recompute the boxes
-	boxes_i.update(positions[0], positions[1]);
-	const long n_boxes_i = boxes_i.getNBoxes();
-	const auto &nbrs_pos_i = boxes_i.getNbrsPos();
-	const auto &parts_of_box_i = boxes_i.getPartsOfBox();
-
 	// Infered forces (with boxes)
 	for (long b1 = 0 ; b1 < n_boxes_i ; ++b1) {
 		for (auto it_i = parts_of_box_i[b1].cbegin() ;
@@ -162,12 +162,14 @@ void State::calcInternalForces() {
 			for (auto it_j = parts_of_box_i[b1].cbegin() ;
 				 it_j != it_i ; ++it_j) {
 				calcInferedForceIJ(*it_i, *it_j);
+				calcInferedForceIJ(*it_j, *it_i);
 			}
 			// Neighboring boxes
 			for (long b2 : nbrs_pos_i[b1]) {
 				for (auto it_j = parts_of_box_i[b2].cbegin() ;
 					 it_j != parts_of_box_i[b2].cend() ; ++it_j) {
 					calcInferedForceIJ(*it_i, *it_j);
+					calcInferedForceIJ(*it_j, *it_i);
 				}
 			}
 		}
@@ -175,6 +177,7 @@ void State::calcInternalForces() {
 }
 
 //! Compute internal force between particles i and j (soft potential)
+// Updates both forces[i] and forces[j]
 void State::calcSoftForceIJ(const long i, const long j) {
 	double dx = positions[0][i] - positions[0][j];
 	double dy = positions[1][i] - positions[1][j];
@@ -196,6 +199,8 @@ void State::calcSoftForceIJ(const long i, const long j) {
 	}
 }
 
+// Compute infered forces between particles i and j 
+// Updates only forces[i]
 void State::calcInferedForceIJ(const long i, const long j) {
 	double dx = positions[0][i] - positions[0][j];
 	double dy = positions[1][i] - positions[1][j];
@@ -210,18 +215,20 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	vdAtan2(1, &dy, &dx, &alpha); // Not that faster than std::atan2
 #else*/
 	double dr = std::sqrt(dx * dx + dy * dy);
-	double alpha = std::atan2(dy, dx);
-	double c = dx / dr;
-	double s = dy / dr;
-	double t1 = positions[2][i] - alpha;
-	double t2 = positions[2][j] - alpha;
+	if (dr < rmax) { // Cutoff (which is also the size of the boxes
+		double alpha = std::atan2(dy, dx);
+		double c = dx / dr;
+		double s = dy / dr;
+		double t1 = positions[2][i] - alpha;
+		double t2 = positions[2][j] - alpha;
 
-	double fr, ft, fo;
-	infered.computeForces(dr, t1, t2, fr, ft, fo);
+		double fr, ft, fo;
+		infered.computeForces(dr, t1, t2, fr, ft, fo);
 
-	forces[0][i] += fr * c - ft * s;
-	forces[1][i] += fr * s + ft * c;
-	forces[2][i] += fo;
+		forces[0][i] += fr * c - ft * s;
+		forces[1][i] += fr * s + ft * c;
+		forces[2][i] += fo;
+	}
 }
 
 /*

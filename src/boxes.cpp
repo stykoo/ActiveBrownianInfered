@@ -3,14 +3,14 @@
 #include "boxes.h"
 
 /* Constructor of boxes. */
-Boxes::Boxes(const double Lx, const double Ly, const long n_parts,
+Boxes::Boxes(const double Lx, const double Ly, const long _n_parts,
 	         const double size) :
 		n_boxes_x(std::floor(Lx / size)),
 		n_boxes_y(std::floor(Ly / size)),
 		n_boxes(n_boxes_x * n_boxes_y),
 		len_box_x(Lx / n_boxes_x),
 		len_box_y(Ly / n_boxes_y),
-		n_parts(n_parts) {
+		n_parts(_n_parts) {
 	nbrs_pos.resize(n_boxes);
 
 	for (long i = 0 ; i < n_boxes_x ; ++i) {

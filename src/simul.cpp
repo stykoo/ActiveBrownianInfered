@@ -46,7 +46,9 @@ Simul::Simul(std::string fname) {
 			|| notPos(rot_dif, "Dr") || notStrPos(dt, "dt")
 			|| notPos(n_iters, "n_iters") || notPos(n_iters, "n_iters_th")
 			|| notStrPos(skip, "skip") || notStrPos(dx, "dx")
-			|| notStrPos(skip, "n_funs") || notStrPos(r0, "r0")
+			|| notStrPos(n_funs, "n_funs") || notStrPos(r0, "r0")
+			|| notStrPos(rmax, "rmax")
+			|| notPos(Lx-3*rmax, "Lx-3rmax") || notPos(Ly-3*rmax, "Ly-3rmax")
 		) {
 		status = SIMUL_INIT_FAILED;
 		return;

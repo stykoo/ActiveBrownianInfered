@@ -3,9 +3,9 @@
 #include "visu.h"
 
 /* Constructor for visualization */
-Visu::Visu(const State *state, const double Lx, const double Ly,
-		   const long n_parts, const double r) :
-	state(state), Lx(Lx), Ly(Ly), n_parts(n_parts), r(r) {
+Visu::Visu(const State *_state, const double _Lx, const double _Ly,
+		   const long _n_parts, const double _r) :
+	state(_state), Lx(_Lx), Ly(_Ly), n_parts(_n_parts), r(_r) {
 }
 
 /*  Thread for visualization. */
