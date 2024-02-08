@@ -8,7 +8,8 @@
 State::State(const double _Lx, const double _Ly, const long _n_parts,
 	         const double _diam, const double _trans_dif,
 			 const double _rot_dif, const double _activity, const double _dt,
-			 const double _pot_strength, Infered &_infered) :
+			 const double _pot_strength, const double _rmax,
+			 Infered &_infered) :
 	lengths({_Lx, _Ly, 2 * M_PI}),
 	n_parts(_n_parts),
 	diam(_diam),
@@ -16,7 +17,8 @@ State::State(const double _Lx, const double _Ly, const long _n_parts,
 	dt(_dt),
 	pot_strength(_pot_strength),
 	infered(_infered),
-	boxes(_Lx, _Ly, _n_parts, _diam),
+	boxes_r(_Lx, _Ly, _n_parts, _diam),
+	boxes_i(_Lx, _Ly, _n_parts, _rmax),
 #ifdef USE_MKL
 	stddevs({std::sqrt(2.0 * _trans_dif * dt),
 			 std::sqrt(2.0 * _trans_dif * dt),
@@ -114,35 +116,59 @@ void State::calcInternalForces() {
 			calcSoftForceIJ(i, j);*/
 
 	// Recompute the boxes
-	boxes.update(positions[0], positions[1]);
-	const long n_boxes = boxes.getNBoxes();
-	const auto &nbrs_pos = boxes.getNbrsPos();
-	const auto &parts_of_box = boxes.getPartsOfBox();
+	boxes_r.update(positions[0], positions[1]);
+	const long n_boxes_r = boxes_r.getNBoxes();
+	const auto &nbrs_pos_r = boxes_r.getNbrsPos();
+	const auto &parts_of_box_r = boxes_r.getPartsOfBox();
 
 	// Repulsive forces (with boxes)
-	for (long b1 = 0 ; b1 < n_boxes ; ++b1) {
-		for (auto it_i = parts_of_box[b1].cbegin() ;
-			 it_i != parts_of_box[b1].cend() ; ++it_i) {
+	for (long b1 = 0 ; b1 < n_boxes_r ; ++b1) {
+		for (auto it_i = parts_of_box_r[b1].cbegin() ;
+			 it_i != parts_of_box_r[b1].cend() ; ++it_i) {
 			// Same box
-			for (auto it_j = parts_of_box[b1].cbegin() ;
+			for (auto it_j = parts_of_box_r[b1].cbegin() ;
 				 it_j != it_i ; ++it_j) {
 				calcSoftForceIJ(*it_i, *it_j);
 			}
 			// Neighboring boxes
-			for (long b2 : nbrs_pos[b1]) {
-				for (auto it_j = parts_of_box[b2].cbegin() ;
-					 it_j != parts_of_box[b2].cend() ; ++it_j) {
+			for (long b2 : nbrs_pos_r[b1]) {
+				for (auto it_j = parts_of_box_r[b2].cbegin() ;
+					 it_j != parts_of_box_r[b2].cend() ; ++it_j) {
 					calcSoftForceIJ(*it_i, *it_j);
 				}
 			}
 		}
 	}
 
-	// Infered forces
-    for (long i = 0 ; i < n_parts ; ++i) {
+    /*for (long i = 0 ; i < n_parts ; ++i) {
 		for (long j = 0 ; j < n_parts ; ++j) {
 			if (i != j) {
 				calcInferedForceIJ(i, j);
+			}
+		}
+	}*/
+
+	// Recompute the boxes
+	boxes_i.update(positions[0], positions[1]);
+	const long n_boxes_i = boxes_i.getNBoxes();
+	const auto &nbrs_pos_i = boxes_i.getNbrsPos();
+	const auto &parts_of_box_i = boxes_i.getPartsOfBox();
+
+	// Infered forces (with boxes)
+	for (long b1 = 0 ; b1 < n_boxes_i ; ++b1) {
+		for (auto it_i = parts_of_box_i[b1].cbegin() ;
+			 it_i != parts_of_box_i[b1].cend() ; ++it_i) {
+			// Same box
+			for (auto it_j = parts_of_box_i[b1].cbegin() ;
+				 it_j != it_i ; ++it_j) {
+				calcInferedForceIJ(*it_i, *it_j);
+			}
+			// Neighboring boxes
+			for (long b2 : nbrs_pos_i[b1]) {
+				for (auto it_j = parts_of_box_i[b2].cbegin() ;
+					 it_j != parts_of_box_i[b2].cend() ; ++it_j) {
+					calcInferedForceIJ(*it_i, *it_j);
+				}
 			}
 		}
 	}

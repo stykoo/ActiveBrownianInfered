@@ -23,7 +23,8 @@ class State {
 		State(const double _Lx, const double _Ly, const long _n_parts,
 			  const double _diam, const double _trans_dif,
 			  const double _rot_dif, const double _activity, const double _dt,
-			  const double _pot_strength, Infered &_infered);
+			  const double _pot_strength, const double _rmax, 
+			  Infered &_infered);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -60,7 +61,8 @@ class State {
 		const double dt; //!< Timestep
 		const double pot_strength; //!< Strength of the repulsive potential
 		Infered &infered; //!< Structure for inference
-		Boxes boxes; //!< Structure for boxes
+		Boxes boxes_r; //!< Boxes for repulsive interactions
+		Boxes boxes_i; //!< Boxes for infered interactions
 
 #ifdef USE_MKL
 		std::array<double, 3> stddevs;

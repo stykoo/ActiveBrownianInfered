@@ -58,6 +58,7 @@ class Simul {
 		long skip; //!< Iterations between two computation of observables
 		double dx; //!< Spatial resolution for correlations
 		double r0; //!< Radial increment for radial functions
+		double rmax; //!< Box size for infered interactions
 		int n_funs; //!< Number of radial functions
 		int n_modes_tot; //! Total number of angular modes
 		std::array<std::vector<int>, 2> ks; //!< Factors for cos / sin
