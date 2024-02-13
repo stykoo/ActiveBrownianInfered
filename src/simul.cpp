@@ -355,8 +355,7 @@ void Simul::writeCoeffs(H5::H5File &file) {
 }
 
 void Simul::computeAndWriteForces(H5::H5File &file) {
-	double rmax_f = n_funs * r0;
-	long n_div_r = (long) rmax_f / dx;
+	long n_div_r = (long) rmax / dx;
 	double step_angle = (2 * M_PI) / N_DIV_ANGLE;
 
 	// New group
