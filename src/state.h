@@ -24,7 +24,7 @@ class State {
 			  const double _diam, const double _trans_dif,
 			  const double _rot_dif, const double _activity, const double _dt,
 			  const double _pot_strength, const double _rmax, 
-			  Infered &_infered);
+			  const double _rmin, Infered &_infered);
 		~State() {
 #ifdef USE_MKL
 			vslDeleteStream(&stream);
@@ -61,6 +61,7 @@ class State {
 		const double dt; //!< Timestep
 		const double pot_strength; //!< Strength of the repulsive potential
 		const double rmax; //!< Cut-off for infered forces
+		const double rmin; //!< Cut-off for infered forces
 		Infered &infered; //!< Structure for inference
 		Boxes boxes_r; //!< Boxes for repulsive interactions
 		Boxes boxes_i; //!< Boxes for infered interactions

@@ -30,6 +30,7 @@ Simul::Simul(std::string fname) {
 		loadAttribute(&file, &dx, "dx");
 		loadAttribute(&file, &r0, "r0");
 		loadAttribute(&file, &rmax, "rmax");
+		loadAttribute(&file, &rmin, "rmin");
 		loadKs(file);
 		loadCoeffs(file);
 	} catch (H5::Exception& err) {
@@ -171,7 +172,7 @@ void Simul::run() {
 	
 	// Initialize the state of the system
 	State state(Lx, Ly, n_parts, diam, trans_dif, rot_dif, activity,
-				dt, pot_strength, rmax, *infered);
+				dt, pot_strength, rmax, rmin, *infered);
 	
 #ifndef NOVISU
 	// Start thread for visualization

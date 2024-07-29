@@ -9,7 +9,7 @@ State::State(const double _Lx, const double _Ly, const long _n_parts,
 	         const double _diam, const double _trans_dif,
 			 const double _rot_dif, const double _activity, const double _dt,
 			 const double _pot_strength, const double _rmax,
-			 Infered &_infered) :
+			 const double _rmin, Infered &_infered) :
 	lengths({_Lx, _Ly, 2 * M_PI}),
 	n_parts(_n_parts),
 	diam(_diam),
@@ -17,6 +17,7 @@ State::State(const double _Lx, const double _Ly, const long _n_parts,
 	dt(_dt),
 	pot_strength(_pot_strength),
 	rmax(_rmax),
+	rmin(_rmin),
 	infered(_infered),
 	boxes_r(_Lx, _Ly, _n_parts, _diam),
 	boxes_i(_Lx, _Ly, _n_parts, _rmax),
@@ -215,7 +216,7 @@ void State::calcInferedForceIJ(const long i, const long j) {
 	vdAtan2(1, &dy, &dx, &alpha); // Not that faster than std::atan2
 #else*/
 	double dr = std::sqrt(dx * dx + dy * dy);
-	if (dr < rmax) { // Cutoff (which is also the size of the boxes
+	if (dr < rmax && dr > rmin) { // Cutoff which is also the size of the boxes
 		double alpha = std::atan2(dy, dx);
 		double c = dx / dr;
 		double s = dy / dr;
