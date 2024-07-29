@@ -152,6 +152,7 @@ void Simul::print() const {
 	printParam(activity, "U");
 	printParam(trans_dif, "Dt");
 	printParam(rot_dif, "Dr");
+	printParam(pot_strength, "pot_strength");
 	printParam(dt, "dt");
 	printParam(n_iters, "niters");
 	printParam(n_iters_th, "niters_th");
@@ -159,6 +160,7 @@ void Simul::print() const {
 	printParam(dx, "dx");
 	printParam(n_funs, "nfuns");
 	printParam(r0, "r0");
+	printParam(rmax, "rmax");
 	std::cout << std::endl;
 }
 
@@ -287,6 +289,8 @@ void Simul::save(std::string fname) {
 	try {
 		H5::H5File file(fname, H5F_ACC_TRUNC);
 
+		char date[22] = __DATE__ " " __TIME__;
+		writeAttribute(&file, H5::StrType(0, 22), date, "compilation_date");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &Lx, "Lx");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &Ly, "Ly");
 		writeAttribute(&file, H5::PredType::NATIVE_LONG, &n_parts, "N");
@@ -294,6 +298,8 @@ void Simul::save(std::string fname) {
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &activity, "U");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &trans_dif, "Dt");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &rot_dif, "Dr");
+		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &pot_strength,
+				       "pot_strength");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &dt, "dt");
 		writeAttribute(&file, H5::PredType::NATIVE_LONG, &n_iters, "niters");
 		writeAttribute(&file, H5::PredType::NATIVE_LONG, &n_iters_th,
@@ -301,6 +307,7 @@ void Simul::save(std::string fname) {
 		writeAttribute(&file, H5::PredType::NATIVE_LONG, &skip, "skip");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &dx, "dx");
 		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &r0, "r0");
+		writeAttribute(&file, H5::PredType::NATIVE_DOUBLE, &rmax, "rmax");
 
 		writeKs(file);
 		writeCoeffs(file);
@@ -349,8 +356,7 @@ void Simul::writeCoeffs(H5::H5File &file) {
 }
 
 void Simul::computeAndWriteForces(H5::H5File &file) {
-	double rmax_f = n_funs * r0;
-	long n_div_r = (long) rmax_f / dx;
+	long n_div_r = (long) rmax / dx;
 	double step_angle = (2 * M_PI) / N_DIV_ANGLE;
 
 	// New group
